@@ -1,0 +1,56 @@
+[
+  {
+    "id": "sample_forest_01",
+    "title": "Canopy Pulse",
+    "artist": "Sample Library",
+    "bpm": 82,
+    "environmentTags": ["forest", "park"],
+    "musicTags": ["ambient", "acoustic", "calm"],
+    "audioPath": "assets/music/canopy_pulse.mp3"
+  },
+  {
+    "id": "sample_ocean_01",
+    "title": "Blue Horizon",
+    "artist": "Sample Library",
+    "bpm": 94,
+    "environmentTags": ["ocean", "river"],
+    "musicTags": ["chill", "atmospheric", "flowing"],
+    "audioPath": "assets/music/blue_horizon.mp3"
+  },
+  {
+    "id": "sample_city_01",
+    "title": "Glass Avenue",
+    "artist": "Sample Library",
+    "bpm": 124,
+    "environmentTags": ["city", "road"],
+    "musicTags": ["electronic", "urban", "rhythmic"],
+    "audioPath": "assets/music/glass_avenue.mp3"
+  },
+  {
+    "id": "sample_river_01",
+    "title": "Slow Current",
+    "artist": "Sample Library",
+    "bpm": 76,
+    "environmentTags": ["river", "park", "forest"],
+    "musicTags": ["piano", "soft", "calm"],
+    "audioPath": "assets/music/slow_current.mp3"
+  },
+  {
+    "id": "sample_park_01",
+    "title": "Green Noon",
+    "artist": "Sample Library",
+    "bpm": 108,
+    "environmentTags": ["park", "city"],
+    "musicTags": ["light", "happy", "acoustic"],
+    "audioPath": "assets/music/green_noon.mp3"
+  },
+  {
+    "id": "sample_ocean_02",
+    "title": "Tide Runner",
+    "artist": "Sample Library",
+    "bpm": 132,
+    "environmentTags": ["ocean", "road"],
+    "musicTags": ["energetic", "open", "electronic"],
+    "audioPath": "assets/music/tide_runner.mp3"
+  }
+]
