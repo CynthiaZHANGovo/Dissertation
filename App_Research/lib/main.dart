@@ -114,7 +114,7 @@ class _HomeScreenState extends State<HomeScreen> {
       });
     } catch (error) {
       setState(() {
-        _status = 'Could not use GPS/Overpass: $error';
+        _status = 'GPS/Overpass failed: ${ErrorText.short(error)}';
       });
     } finally {
       setState(() {
@@ -188,11 +188,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     children: [
                       for (final item in const [
                         'forest',
-                        'ocean',
-                        'river',
-                        'city',
+                        'water',
                         'park',
+                        'urban',
                         'road',
+                        'campus',
                       ])
                         ChoiceChip(
                           label: Text(item),
@@ -435,17 +435,26 @@ class ContextVocabulary {
   static List<String> musicKeywords(String context) {
     return switch (context) {
       'forest' => ['forest', 'park', 'nature', 'ambient', 'acoustic', 'calm'],
-      'ocean' => ['ocean', 'river', 'sea', 'open', 'chill', 'atmospheric'],
-      'river' => ['river', 'ocean', 'flowing', 'piano', 'soft', 'calm'],
-      'city' => ['city', 'road', 'urban', 'electronic', 'rhythmic'],
+      'water' => ['water', 'flowing', 'open', 'chill', 'piano', 'calm'],
       'park' => ['park', 'forest', 'green', 'light', 'happy', 'acoustic'],
-      'road' => ['road', 'city', 'rhythmic', 'energetic', 'electronic'],
+      'urban' => ['urban', 'road', 'city', 'electronic', 'rhythmic'],
+      'road' => ['road', 'urban', 'rhythmic', 'energetic', 'electronic'],
+      'campus' => ['campus', 'park', 'study', 'focus', 'light', 'calm'],
       _ => [context],
     };
   }
 }
 
 class ContextDetectionService {
+  static const _userAgent =
+      'ContextAwareMusicDissertation/1.0 (Flutter Android student research app)';
+
+  static const _overpassEndpoints = [
+    'https://overpass-api.de/api/interpreter',
+    'https://overpass.kumi.systems/api/interpreter',
+    'https://overpass.openstreetmap.ru/api/interpreter',
+  ];
+
   Future<Position> currentPosition() async {
     final serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
@@ -462,48 +471,83 @@ class ContextDetectionService {
     }
 
     return Geolocator.getCurrentPosition(
-      locationSettings: const LocationSettings(
+      locationSettings: AndroidSettings(
         accuracy: LocationAccuracy.high,
+        forceLocationManager: true,
       ),
     );
   }
 
   Future<EnvironmentContext> detectNearbyContext(Position position) async {
+    final radiusMeters = 700;
     final query = '''
 [out:json][timeout:25];
 (
-  nwr(around:800,${position.latitude},${position.longitude})["natural"];
-  nwr(around:800,${position.latitude},${position.longitude})["landuse"];
-  nwr(around:800,${position.latitude},${position.longitude})["waterway"];
-  nwr(around:800,${position.latitude},${position.longitude})["leisure"];
-  nwr(around:800,${position.latitude},${position.longitude})["building"];
-  nwr(around:800,${position.latitude},${position.longitude})["highway"];
-  nwr(around:800,${position.latitude},${position.longitude})["amenity"];
+  nwr(around:$radiusMeters,${position.latitude},${position.longitude})["natural"];
+  nwr(around:$radiusMeters,${position.latitude},${position.longitude})["landuse"];
+  nwr(around:$radiusMeters,${position.latitude},${position.longitude})["waterway"];
+  nwr(around:$radiusMeters,${position.latitude},${position.longitude})["leisure"];
+  nwr(around:$radiusMeters,${position.latitude},${position.longitude})["building"];
+  nwr(around:$radiusMeters,${position.latitude},${position.longitude})["highway"];
+  nwr(around:$radiusMeters,${position.latitude},${position.longitude})["amenity"];
+  nwr(around:$radiusMeters,${position.latitude},${position.longitude})["place"];
 );
-out tags center 80;
+out tags 120;
 ''';
 
-    final response = await http.post(
-      Uri.parse('https://overpass-api.de/api/interpreter'),
-      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-      body: {'data': query},
-    );
-    if (response.statusCode != 200) {
-      throw Exception('Overpass returned HTTP ${response.statusCode}');
-    }
+    final response = await _queryOverpass(query);
 
     final data = jsonDecode(response.body) as Map<String, dynamic>;
     final elements = (data['elements'] as List<dynamic>? ?? [])
         .cast<Map<String, dynamic>>();
     final scores = _scoreElements(elements);
-    if (scores.isEmpty) return EnvironmentContext.mock('city');
+    if (scores.isEmpty) return EnvironmentContext.mock('urban');
 
-    final primary = scores.entries.reduce((a, b) => a.value > b.value ? a : b).key;
+    final primary = scores.entries
+        .reduce((a, b) => a.value > b.value ? a : b)
+        .key;
     return EnvironmentContext(
       primary: primary,
       musicKeywords: ContextVocabulary.musicKeywords(primary),
       scores: scores,
     );
+  }
+
+  Future<http.Response> _queryOverpass(String query) async {
+    http.Response? lastResponse;
+
+    for (final endpoint in _overpassEndpoints) {
+      try {
+        final response = await http
+            .post(
+              Uri.parse(endpoint),
+              headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Accept': 'application/json',
+                'User-Agent': _userAgent,
+              },
+              body: {'data': query},
+            )
+            .timeout(const Duration(seconds: 30));
+        if (response.statusCode == 200) return response;
+        lastResponse = response;
+      } catch (_) {
+        continue;
+      }
+    }
+
+    final status = lastResponse?.statusCode;
+    final body = lastResponse?.body.trim();
+    final normalizedBody = body?.replaceAll(RegExp(r'\s+'), ' ');
+    final detail = normalizedBody == null || normalizedBody.isEmpty
+        ? ''
+        : ': ${normalizedBody.substring(0, min(120, normalizedBody.length))}';
+    if (status == 429) {
+      throw Exception(
+        'Overpass rate limit. Wait briefly and try again, or switch network.',
+      );
+    }
+    throw Exception('Overpass HTTP ${status ?? 'unknown'}$detail');
   }
 
   Map<String, double> _scoreElements(List<Map<String, dynamic>> elements) {
@@ -519,18 +563,87 @@ out tags center 80;
       final landuse = tags['landuse'];
       final waterway = tags['waterway'];
       final leisure = tags['leisure'];
+      final amenity = tags['amenity'];
+      final building = tags['building'];
+      final highway = tags['highway'];
+      final place = tags['place'];
 
-      if (natural == 'wood' || landuse == 'forest') add('forest', 3);
-      if (natural == 'water' || waterway != null) add('river', 2.5);
-      if (natural == 'coastline' || natural == 'beach') add('ocean', 4);
-      if (leisure == 'park' || landuse == 'grass') add('park', 2.5);
-      if (tags.containsKey('building') || tags.containsKey('amenity')) {
-        add('city', 1.3);
+      if (_isCampus(tags)) {
+        add('campus', 4);
+        add('urban', 0.4);
       }
-      if (tags.containsKey('highway')) add('road', 1.6);
+      if (natural == 'wood' ||
+          natural == 'tree_row' ||
+          landuse == 'forest' ||
+          landuse == 'orchard') {
+        add('forest', 3);
+      }
+      if (natural == 'water' ||
+          natural == 'coastline' ||
+          natural == 'beach' ||
+          waterway != null ||
+          landuse == 'reservoir' ||
+          landuse == 'basin') {
+        add('water', 3);
+      }
+      if (leisure == 'park' ||
+          leisure == 'garden' ||
+          landuse == 'grass' ||
+          landuse == 'recreation_ground') {
+        add('park', 2.8);
+      }
+      if (highway != null) {
+        add('road', _roadWeight(highway));
+        add('urban', 0.35);
+      }
+      if (building != null && !_isCampus(tags)) {
+        add('urban', 1.1);
+      }
+      if (amenity != null && !_isCampus(tags)) {
+        add('urban', 1.0);
+      }
+      if (place == 'city' ||
+          place == 'town' ||
+          place == 'suburb' ||
+          place == 'neighbourhood') {
+        add('urban', 2);
+      }
     }
 
     return scores;
+  }
+
+  bool _isCampus(Map<String, dynamic> tags) {
+    final amenity = tags['amenity'];
+    final landuse = tags['landuse'];
+    final building = tags['building'];
+
+    return amenity == 'university' ||
+        amenity == 'college' ||
+        amenity == 'school' ||
+        amenity == 'kindergarten' ||
+        landuse == 'education' ||
+        building == 'university' ||
+        building == 'college' ||
+        building == 'school' ||
+        building == 'kindergarten';
+  }
+
+  double _roadWeight(dynamic highway) {
+    return switch (highway) {
+      'motorway' || 'trunk' || 'primary' || 'secondary' => 2.2,
+      'tertiary' || 'residential' || 'service' => 1.7,
+      'footway' || 'path' || 'cycleway' || 'pedestrian' => 0.8,
+      _ => 1.2,
+    };
+  }
+}
+
+class ErrorText {
+  static String short(Object error) {
+    final text = error.toString().replaceFirst('Exception: ', '');
+    if (text.length <= 120) return text;
+    return '${text.substring(0, 117)}...';
   }
 }
 

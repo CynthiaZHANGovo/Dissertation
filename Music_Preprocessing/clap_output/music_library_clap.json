@@ -5,9 +5,19 @@
     "artist": "Kevin MacLeod",
     "fileName": "Ascending_the_Vale.mp3",
     "bpm": 90.0,
-    "environmentTags": [],
-    "scores": {},
-    "environmentTagSource": "not_computed",
+    "environmentTags": [
+      "water",
+      "forest"
+    ],
+    "scores": {
+      "forest": 0.1736,
+      "water": 0.1785,
+      "park": 0.1644,
+      "urban": 0.156,
+      "road": 0.1608,
+      "campus": 0.1666
+    },
+    "environmentTagSource": "clap",
     "sourceUrl": "https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1600064",
     "downloadUrl": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Ascending%20the%20Vale.mp3",
     "license": "CC BY 4.0",
@@ -23,9 +33,19 @@
     "artist": "Kevin MacLeod",
     "fileName": "The_Forest_and_the_Trees.mp3",
     "bpm": 89.0,
-    "environmentTags": [],
-    "scores": {},
-    "environmentTagSource": "not_computed",
+    "environmentTags": [
+      "forest",
+      "water"
+    ],
+    "scores": {
+      "forest": 0.1843,
+      "water": 0.1756,
+      "park": 0.1588,
+      "urban": 0.156,
+      "road": 0.1584,
+      "campus": 0.167
+    },
+    "environmentTagSource": "clap",
     "sourceUrl": "https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1100766",
     "downloadUrl": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/The%20Forest%20and%20the%20Trees.mp3",
     "license": "CC BY 4.0",
@@ -41,9 +61,19 @@
     "artist": "Kevin MacLeod",
     "fileName": "Nightdreams.mp3",
     "bpm": 54.0,
-    "environmentTags": [],
-    "scores": {},
-    "environmentTagSource": "not_computed",
+    "environmentTags": [
+      "water",
+      "forest"
+    ],
+    "scores": {
+      "forest": 0.1713,
+      "water": 0.1834,
+      "park": 0.159,
+      "urban": 0.1564,
+      "road": 0.1657,
+      "campus": 0.1643
+    },
+    "environmentTagSource": "clap",
     "sourceUrl": "https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1700054",
     "downloadUrl": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Nightdreams.mp3",
     "license": "CC BY 4.0",
@@ -59,9 +89,19 @@
     "artist": "Kevin MacLeod",
     "fileName": "River_Fire.mp3",
     "bpm": 54.0,
-    "environmentTags": [],
-    "scores": {},
-    "environmentTagSource": "not_computed",
+    "environmentTags": [
+      "water",
+      "forest"
+    ],
+    "scores": {
+      "forest": 0.1766,
+      "water": 0.1802,
+      "park": 0.1643,
+      "urban": 0.1529,
+      "road": 0.1602,
+      "campus": 0.1658
+    },
+    "environmentTagSource": "clap",
     "sourceUrl": "https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1700055",
     "downloadUrl": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/River%20Fire.mp3",
     "license": "CC BY 4.0",
@@ -77,9 +117,19 @@
     "artist": "Kevin MacLeod",
     "fileName": "Ave_Marimba.mp3",
     "bpm": 70.0,
-    "environmentTags": [],
-    "scores": {},
-    "environmentTagSource": "not_computed",
+    "environmentTags": [
+      "park",
+      "water"
+    ],
+    "scores": {
+      "forest": 0.1663,
+      "water": 0.1741,
+      "park": 0.1861,
+      "urban": 0.1498,
+      "road": 0.159,
+      "campus": 0.1648
+    },
+    "environmentTagSource": "clap",
     "sourceUrl": "https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1700024",
     "downloadUrl": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Ave%20Marimba.mp3",
     "license": "CC BY 4.0",
@@ -95,9 +145,19 @@
     "artist": "Kevin MacLeod",
     "fileName": "River_of_Io.mp3",
     "bpm": 104.0,
-    "environmentTags": [],
-    "scores": {},
-    "environmentTagSource": "not_computed",
+    "environmentTags": [
+      "urban",
+      "road"
+    ],
+    "scores": {
+      "forest": 0.1617,
+      "water": 0.1689,
+      "park": 0.1604,
+      "urban": 0.1729,
+      "road": 0.1708,
+      "campus": 0.1653
+    },
+    "environmentTagSource": "clap",
     "sourceUrl": "https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1600065",
     "downloadUrl": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/River%20of%20Io.mp3",
     "license": "CC BY 4.0",
@@ -113,9 +173,19 @@
     "artist": "Kevin MacLeod",
     "fileName": "Water_Droplets_on_the_River.mp3",
     "bpm": 140.0,
-    "environmentTags": [],
-    "scores": {},
-    "environmentTagSource": "not_computed",
+    "environmentTags": [
+      "forest",
+      "water"
+    ],
+    "scores": {
+      "forest": 0.181,
+      "water": 0.1792,
+      "park": 0.1586,
+      "urban": 0.1478,
+      "road": 0.1628,
+      "campus": 0.1706
+    },
+    "environmentTagSource": "clap",
     "sourceUrl": "https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1100427",
     "downloadUrl": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Water%20Droplets%20on%20the%20River.mp3",
     "license": "CC BY 4.0",
@@ -131,9 +201,19 @@
     "artist": "Kevin MacLeod",
     "fileName": "With_the_Sea.mp3",
     "bpm": 118.0,
-    "environmentTags": [],
-    "scores": {},
-    "environmentTagSource": "not_computed",
+    "environmentTags": [
+      "water",
+      "forest"
+    ],
+    "scores": {
+      "forest": 0.1738,
+      "water": 0.174,
+      "park": 0.1658,
+      "urban": 0.1496,
+      "road": 0.1644,
+      "campus": 0.1724
+    },
+    "environmentTagSource": "clap",
     "sourceUrl": "https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1100008",
     "downloadUrl": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/With%20the%20Sea.mp3",
     "license": "CC BY 4.0",
@@ -149,9 +229,19 @@
     "artist": "Kevin MacLeod",
     "fileName": "Trouble_with_Tribals.mp3",
     "bpm": 135.0,
-    "environmentTags": [],
-    "scores": {},
-    "environmentTagSource": "not_computed",
+    "environmentTags": [
+      "park",
+      "campus"
+    ],
+    "scores": {
+      "forest": 0.1605,
+      "water": 0.1682,
+      "park": 0.1762,
+      "urban": 0.1601,
+      "road": 0.1608,
+      "campus": 0.1742
+    },
+    "environmentTagSource": "clap",
     "sourceUrl": "https://incompetech.com/music/royalty-free/index.html?isrc=USUAN2000002",
     "downloadUrl": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Trouble%20with%20Tribals.mp3",
     "license": "CC BY 4.0",
@@ -167,9 +257,19 @@
     "artist": "Kevin MacLeod",
     "fileName": "Le_Grand_Chase.mp3",
     "bpm": 166.0,
-    "environmentTags": [],
-    "scores": {},
-    "environmentTagSource": "not_computed",
+    "environmentTags": [
+      "park",
+      "campus"
+    ],
+    "scores": {
+      "forest": 0.1503,
+      "water": 0.1609,
+      "park": 0.1902,
+      "urban": 0.155,
+      "road": 0.1702,
+      "campus": 0.1734
+    },
+    "environmentTagSource": "clap",
     "sourceUrl": "https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1800021",
     "downloadUrl": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Le%20Grand%20Chase.mp3",
     "license": "CC BY 4.0",
@@ -185,9 +285,19 @@
     "artist": "Kevin MacLeod",
     "fileName": "Robobozo.mp3",
     "bpm": 95.0,
-    "environmentTags": [],
-    "scores": {},
-    "environmentTagSource": "not_computed",
+    "environmentTags": [
+      "forest",
+      "water"
+    ],
+    "scores": {
+      "forest": 0.1713,
+      "water": 0.1699,
+      "park": 0.165,
+      "urban": 0.1584,
+      "road": 0.1689,
+      "campus": 0.1665
+    },
+    "environmentTagSource": "clap",
     "sourceUrl": "https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1700061",
     "downloadUrl": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Robobozo.mp3",
     "license": "CC BY 4.0",
@@ -203,9 +313,19 @@
     "artist": "Kevin MacLeod",
     "fileName": "Wepa.mp3",
     "bpm": 120.0,
-    "environmentTags": [],
-    "scores": {},
-    "environmentTagSource": "not_computed",
+    "environmentTags": [
+      "park",
+      "water"
+    ],
+    "scores": {
+      "forest": 0.1605,
+      "water": 0.1736,
+      "park": 0.1764,
+      "urban": 0.1581,
+      "road": 0.1657,
+      "campus": 0.1657
+    },
+    "environmentTagSource": "clap",
     "sourceUrl": "https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1700020",
     "downloadUrl": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Wepa.mp3",
     "license": "CC BY 4.0",
@@ -221,9 +341,19 @@
     "artist": "Kevin MacLeod",
     "fileName": "Urban_Gauntlet.mp3",
     "bpm": 116.0,
-    "environmentTags": [],
-    "scores": {},
-    "environmentTagSource": "not_computed",
+    "environmentTags": [
+      "forest",
+      "water"
+    ],
+    "scores": {
+      "forest": 0.1758,
+      "water": 0.1751,
+      "park": 0.1568,
+      "urban": 0.1557,
+      "road": 0.1704,
+      "campus": 0.1663
+    },
+    "environmentTagSource": "clap",
     "sourceUrl": "https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1500009",
     "downloadUrl": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Urban%20Gauntlet.mp3",
     "license": "CC BY 4.0",
@@ -239,9 +369,19 @@
     "artist": "Kevin MacLeod",
     "fileName": "Living_Voyage.mp3",
     "bpm": 122.0,
-    "environmentTags": [],
-    "scores": {},
-    "environmentTagSource": "not_computed",
+    "environmentTags": [
+      "water",
+      "forest"
+    ],
+    "scores": {
+      "forest": 0.1721,
+      "water": 0.1741,
+      "park": 0.1698,
+      "urban": 0.1529,
+      "road": 0.1624,
+      "campus": 0.1687
+    },
+    "environmentTagSource": "clap",
     "sourceUrl": "https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1100594",
     "downloadUrl": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Living%20Voyage.mp3",
     "license": "CC BY 4.0",
@@ -257,9 +397,19 @@
     "artist": "Kevin MacLeod",
     "fileName": "Study_And_Relax.mp3",
     "bpm": 72.0,
-    "environmentTags": [],
-    "scores": {},
-    "environmentTagSource": "not_computed",
+    "environmentTags": [
+      "campus",
+      "road"
+    ],
+    "scores": {
+      "forest": 0.1457,
+      "water": 0.172,
+      "park": 0.1695,
+      "urban": 0.1491,
+      "road": 0.1818,
+      "campus": 0.1819
+    },
+    "environmentTagSource": "clap",
     "sourceUrl": "https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1900030",
     "downloadUrl": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Study%20And%20Relax.mp3",
     "license": "CC BY 4.0",
@@ -275,9 +425,19 @@
     "artist": "Kevin MacLeod",
     "fileName": "Universal.mp3",
     "bpm": 80.0,
-    "environmentTags": [],
-    "scores": {},
-    "environmentTagSource": "not_computed",
+    "environmentTags": [
+      "water",
+      "forest"
+    ],
+    "scores": {
+      "forest": 0.1776,
+      "water": 0.1842,
+      "park": 0.1551,
+      "urban": 0.1469,
+      "road": 0.1669,
+      "campus": 0.1693
+    },
+    "environmentTagSource": "clap",
     "sourceUrl": "https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1500035",
     "downloadUrl": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Universal.mp3",
     "license": "CC BY 4.0",
@@ -293,9 +453,19 @@
     "artist": "Kevin MacLeod",
     "fileName": "Grave_Matters.mp3",
     "bpm": 172.3,
-    "environmentTags": [],
-    "scores": {},
-    "environmentTagSource": "not_computed",
+    "environmentTags": [
+      "water",
+      "forest"
+    ],
+    "scores": {
+      "forest": 0.1804,
+      "water": 0.1836,
+      "park": 0.1557,
+      "urban": 0.1489,
+      "road": 0.1556,
+      "campus": 0.1758
+    },
+    "environmentTagSource": "clap",
     "sourceUrl": "https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1100215",
     "downloadUrl": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Grave%20Matters.mp3",
     "license": "CC BY 4.0",

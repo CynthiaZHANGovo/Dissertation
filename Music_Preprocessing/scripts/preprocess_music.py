@@ -46,6 +46,16 @@ def estimate_bpm(path: Path, duration: float = 60.0) -> float | None:
         return None
 
 
+def source_bpm(source: dict) -> float | None:
+    value = source.get("bpm") or source.get("tempo")
+    if value in (None, ""):
+        return None
+    try:
+        return round(float(value), 1)
+    except (TypeError, ValueError):
+        return None
+
+
 def read_audio_tags(path: Path) -> dict[str, str]:
     tags = {"title": path.stem, "artist": "Unknown"}
     try:
@@ -89,10 +99,7 @@ class ClapScorer:
 
 
 def fallback_scores(prompts: dict[str, str]) -> dict[str, float]:
-    if not prompts:
-        return {}
-    score = round(1.0 / len(prompts), 4)
-    return {label: score for label in prompts}
+    return {}
 
 
 def seeded_scores(prompts: dict[str, str], seed_tags: list[str]) -> dict[str, float]:
@@ -116,11 +123,16 @@ def build_library(
     use_clap: bool,
     top_k: int,
     bpm_duration: float,
+    metadata_only: bool,
 ) -> None:
     prompts = load_json(prompts_path, {})
     source_records = load_json(source_metadata_path, [])
     source_by_file = {record.get("fileName"): record for record in source_records}
-    files = discover_audio_files(input_dir)
+    if metadata_only:
+        files = [input_dir / record["fileName"] for record in source_records if record.get("fileName")]
+        files = [path for path in files if path.exists()]
+    else:
+        files = discover_audio_files(input_dir)
 
     scorer = None
     if use_clap:
@@ -130,17 +142,20 @@ def build_library(
     for index, path in enumerate(tqdm(files, desc="Processing music"), start=1):
         metadata = read_audio_tags(path)
         source = source_by_file.get(path.name, {})
-        bpm = estimate_bpm(path, duration=bpm_duration)
+        bpm = source_bpm(source) or estimate_bpm(path, duration=bpm_duration)
 
         if scorer:
             try:
                 scores = scorer.score(path)
+                tag_source = "clap"
             except Exception as exc:
                 print(f"[WARN] CLAP failed for {path.name}: {exc}")
                 scores = fallback_scores(prompts)
+                tag_source = "not_computed"
         else:
             seed_tags = source.get("environmentTags", [])
             scores = seeded_scores(prompts, seed_tags) if seed_tags else fallback_scores(prompts)
+            tag_source = source.get("environmentTagSource") or ("manual" if seed_tags else "not_computed")
 
         title = source.get("title") or metadata["title"]
         artist = source.get("artist") or metadata["artist"]
@@ -153,11 +168,17 @@ def build_library(
                 "artist": artist,
                 "fileName": path.name,
                 "bpm": bpm,
-                "environmentTags": top_tags(scores, top_k),
+                "environmentTags": top_tags(scores, top_k) if scores else [],
                 "scores": scores,
+                "environmentTagSource": tag_source,
                 "sourceUrl": source.get("sourceUrl", ""),
+                "downloadUrl": source.get("downloadUrl", ""),
                 "license": source.get("license", ""),
                 "attribution": source.get("attribution", ""),
+                "isrc": source.get("isrc", ""),
+                "genre": source.get("genre", ""),
+                "feel": source.get("feel", ""),
+                "length": source.get("length", ""),
             }
         )
 
@@ -175,6 +196,7 @@ def main() -> None:
     parser.add_argument("--use-clap", action="store_true", help="Enable CLAP audio-text environment scoring.")
     parser.add_argument("--top-k", type=int, default=2, help="Number of environment tags to keep per track.")
     parser.add_argument("--bpm-duration", type=float, default=60.0, help="Seconds from each track used for BPM estimation.")
+    parser.add_argument("--metadata-only", action="store_true", help="Only process audio files listed in source metadata.")
     args = parser.parse_args()
 
     build_library(
@@ -185,6 +207,7 @@ def main() -> None:
         use_clap=args.use_clap,
         top_k=args.top_k,
         bpm_duration=args.bpm_duration,
+        metadata_only=args.metadata_only,
     )
 
 

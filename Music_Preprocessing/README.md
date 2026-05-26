@@ -2,7 +2,7 @@
 
 Offline preprocessing project for building a Flutter-ready music metadata library.
 
-The pipeline takes open-license audio files, estimates BPM, optionally scores each track against environment prompts with CLAP, and writes `data/processed/music_library.json`.
+The pipeline takes open-license audio files, reads available web metadata such as BPM, optionally scores each track against environment prompts with CLAP, and writes `data/processed/music_library.json`.
 
 ## Project Structure
 
@@ -10,6 +10,7 @@ The pipeline takes open-license audio files, estimates BPM, optionally scores ea
 Music_Preprocessing/
   config/
     environment_prompts.json
+    incompetech_tracks.txt
     open_music_sources.json
   data/
     raw_music/
@@ -17,6 +18,7 @@ Music_Preprocessing/
   notebooks/
     context_music_preprocess.ipynb
   scripts/
+    download_incompetech.py
     download_open_music.py
     preprocess_music.py
   requirements.txt
@@ -24,20 +26,26 @@ Music_Preprocessing/
 
 ## Quick Start
 
-1. Put `.mp3`, `.wav`, `.m4a`, `.flac`, or `.ogg` files in `data/raw_music/`.
+1. Put `.mp3`, `.wav`, `.m4a`, `.flac`, or `.ogg` files in `data/raw_music/`, or list Incompetech ISRC values in `config/incompetech_tracks.txt`.
 2. Install dependencies:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-3. Build the library:
+3. For Incompetech tracks, download selected MP3 files and metadata:
 
 ```bash
-python scripts/preprocess_music.py --input data/raw_music --output data/processed/music_library.json
+python scripts/download_incompetech.py --tracks config/incompetech_tracks.txt --output data/raw_music --metadata-output data/processed/source_metadata.json
 ```
 
-4. Copy the generated JSON into the Flutter app:
+4. Build the library:
+
+```bash
+python scripts/preprocess_music.py --input data/raw_music --output data/processed/music_library.json --metadata-only
+```
+
+5. Copy the generated JSON into the Flutter app:
 
 ```bash
 copy data\processed\music_library.json ..\App_Research\assets\data\music_library.json
@@ -45,11 +53,11 @@ copy data\processed\music_library.json ..\App_Research\assets\data\music_library
 
 ## CLAP Environment Matching
 
-By default, the script runs BPM extraction and simple fallback tagging. To enable audio-text matching:
+By default, the script reads metadata and leaves environment tags uncomputed. To enable audio-text matching:
 
 ```bash
 pip install -r requirements-clap.txt
-python scripts/preprocess_music.py --input data/raw_music --output data/processed/music_library.json --use-clap
+python scripts/preprocess_music.py --input data/raw_music --output data/processed/music_library.json --metadata-only --use-clap
 ```
 
 CLAP installation is heavier than BPM extraction because it uses PyTorch. If CLAP fails locally, run the same command in Google Colab using `notebooks/context_music_preprocess.ipynb`.
@@ -73,6 +81,15 @@ The helper script can download direct URLs or Internet Archive items declared in
 python scripts/download_open_music.py --manifest config/open_music_sources.json --output data/raw_music
 ```
 
+For Incompetech, prefer `config/incompetech_tracks.txt` with one track per line:
+
+```text
+Ascending the Vale | USUAN1600064
+The Forest and the Trees | USUAN1100766
+```
+
+The Incompetech downloader reads the official `pieces.json`, downloads MP3 files, captures web BPM, genre, feel, length, ISRC, source URL, license, and attribution, then writes `data/processed/source_metadata.json`.
+
 ## Output Format
 
 Each track is written like this:
@@ -84,12 +101,9 @@ Each track is written like this:
   "artist": "Unknown",
   "fileName": "track_001.mp3",
   "bpm": 88.4,
-  "environmentTags": ["ocean", "river"],
-  "scores": {
-    "forest": 0.21,
-    "ocean": 0.78,
-    "river": 0.61
-  },
+  "environmentTags": [],
+  "scores": {},
+  "environmentTagSource": "not_computed",
   "sourceUrl": "",
   "license": "",
   "attribution": ""

@@ -33,6 +33,7 @@ dependencies:
 
   cupertino_icons: ^1.0.8
   geolocator: ^14.0.2
+  geolocator_android: ^5.0.2
   http: ^1.5.0
 
 dev_dependencies:
