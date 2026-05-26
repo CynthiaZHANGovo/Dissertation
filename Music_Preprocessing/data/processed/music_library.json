@@ -1,0 +1,194 @@
+[
+  {
+    "id": "track_001_ancient_rite",
+    "title": "Ancient Rite",
+    "artist": "Kevin MacLeod",
+    "fileName": "Ancient_Rite.mp3",
+    "bpm": 69.8,
+    "environmentTags": [
+      "forest",
+      "rain"
+    ],
+    "scores": {
+      "forest": 0.7,
+      "ocean": 0.05,
+      "river": 0.4,
+      "city": 0.05,
+      "park": 0.05,
+      "road": 0.05,
+      "rain": 0.55,
+      "campus": 0.05
+    },
+    "sourceUrl": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Ancient%20Rite.mp3",
+    "license": "CC BY 3.0",
+    "attribution": "Ancient Rite Kevin MacLeod (incompetech.com), licensed under Creative Commons: By Attribution 3.0 License"
+  },
+  {
+    "id": "track_002_black_bird",
+    "title": "Black Bird",
+    "artist": "Kevin MacLeod",
+    "fileName": "Black_Bird.mp3",
+    "bpm": 107.7,
+    "environmentTags": [
+      "forest",
+      "rain"
+    ],
+    "scores": {
+      "forest": 0.7,
+      "ocean": 0.05,
+      "river": 0.4,
+      "city": 0.05,
+      "park": 0.05,
+      "road": 0.05,
+      "rain": 0.55,
+      "campus": 0.05
+    },
+    "sourceUrl": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Black%20Bird.mp3",
+    "license": "CC BY 3.0",
+    "attribution": "Black Bird Kevin MacLeod (incompetech.com), licensed under Creative Commons: By Attribution 3.0 License"
+  },
+  {
+    "id": "track_003_frogs_legs_rag",
+    "title": "Frogs Legs Rag",
+    "artist": "Kevin MacLeod",
+    "fileName": "Frogs_Legs_Rag.mp3",
+    "bpm": 95.7,
+    "environmentTags": [
+      "park",
+      "city"
+    ],
+    "scores": {
+      "forest": 0.05,
+      "ocean": 0.05,
+      "river": 0.05,
+      "city": 0.55,
+      "park": 0.7,
+      "road": 0.05,
+      "rain": 0.05,
+      "campus": 0.4
+    },
+    "sourceUrl": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Frogs%20Legs%20Rag.mp3",
+    "license": "CC BY 3.0",
+    "attribution": "Frogs Legs Rag Kevin MacLeod (incompetech.com), licensed under Creative Commons: By Attribution 3.0 License"
+  },
+  {
+    "id": "track_004_le_grand_chase",
+    "title": "Le Grand Chase",
+    "artist": "Kevin MacLeod",
+    "fileName": "Le_Grand_Chase.mp3",
+    "bpm": 83.4,
+    "environmentTags": [
+      "road",
+      "city"
+    ],
+    "scores": {
+      "forest": 0.05,
+      "ocean": 0.05,
+      "river": 0.05,
+      "city": 0.55,
+      "park": 0.05,
+      "road": 0.7,
+      "rain": 0.05,
+      "campus": 0.4
+    },
+    "sourceUrl": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Le%20Grand%20Chase.mp3",
+    "license": "CC BY 3.0",
+    "attribution": "Le Grand Chase Kevin MacLeod (incompetech.com), licensed under Creative Commons: By Attribution 3.0 License"
+  },
+  {
+    "id": "track_005_maple_leaf_rag",
+    "title": "Maple Leaf Rag",
+    "artist": "Kevin MacLeod",
+    "fileName": "Maple_Leaf_Rag.mp3",
+    "bpm": 99.4,
+    "environmentTags": [
+      "park",
+      "city"
+    ],
+    "scores": {
+      "forest": 0.05,
+      "ocean": 0.05,
+      "river": 0.05,
+      "city": 0.55,
+      "park": 0.7,
+      "road": 0.05,
+      "rain": 0.05,
+      "campus": 0.4
+    },
+    "sourceUrl": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Maple%20Leaf%20Rag.mp3",
+    "license": "CC BY 3.0",
+    "attribution": "Maple Leaf Rag Kevin MacLeod (incompetech.com), licensed under Creative Commons: By Attribution 3.0 License"
+  },
+  {
+    "id": "track_006_monkeys_spinning_monkeys",
+    "title": "Monkeys Spinning Monkeys",
+    "artist": "Kevin MacLeod",
+    "fileName": "Monkeys_Spinning_Monkeys.mp3",
+    "bpm": 143.6,
+    "environmentTags": [
+      "park",
+      "campus"
+    ],
+    "scores": {
+      "forest": 0.05,
+      "ocean": 0.05,
+      "river": 0.05,
+      "city": 0.4,
+      "park": 0.7,
+      "road": 0.05,
+      "rain": 0.05,
+      "campus": 0.55
+    },
+    "sourceUrl": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Monkeys%20Spinning%20Monkeys.mp3",
+    "license": "CC BY 3.0",
+    "attribution": "Monkeys Spinning Monkeys Kevin MacLeod (incompetech.com), licensed under Creative Commons: By Attribution 3.0 License"
+  },
+  {
+    "id": "track_007_severe_tire_damage",
+    "title": "Severe Tire Damage",
+    "artist": "Kevin MacLeod",
+    "fileName": "Severe_Tire_Damage.mp3",
+    "bpm": 152.0,
+    "environmentTags": [
+      "road",
+      "city"
+    ],
+    "scores": {
+      "forest": 0.05,
+      "ocean": 0.05,
+      "river": 0.05,
+      "city": 0.55,
+      "park": 0.05,
+      "road": 0.7,
+      "rain": 0.05,
+      "campus": 0.4
+    },
+    "sourceUrl": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Severe%20Tire%20Damage.mp3",
+    "license": "CC BY 3.0",
+    "attribution": "Severe Tire Damage Kevin MacLeod (incompetech.com), licensed under Creative Commons: By Attribution 3.0 License"
+  },
+  {
+    "id": "track_008_wholesome",
+    "title": "Wholesome",
+    "artist": "Kevin MacLeod",
+    "fileName": "Wholesome.mp3",
+    "bpm": 129.2,
+    "environmentTags": [
+      "park",
+      "campus"
+    ],
+    "scores": {
+      "forest": 0.05,
+      "ocean": 0.05,
+      "river": 0.4,
+      "city": 0.05,
+      "park": 0.7,
+      "road": 0.05,
+      "rain": 0.05,
+      "campus": 0.55
+    },
+    "sourceUrl": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Wholesome.mp3",
+    "license": "CC BY 3.0",
+    "attribution": "Wholesome Kevin MacLeod (incompetech.com), licensed under Creative Commons: By Attribution 3.0 License"
+  }
+]

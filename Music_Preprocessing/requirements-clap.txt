@@ -1,0 +1,6 @@
+-r requirements.txt
+
+# Optional, only needed for --use-clap environment semantic matching.
+# In Colab this may install more reliably than on Windows.
+torch>=2.1.0
+laion-clap>=1.1.4
