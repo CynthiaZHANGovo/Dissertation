@@ -1,65 +1,56 @@
 [
   {
-    "id": "sample_forest_01",
+    "id": "sample_forest_mountain_01",
     "title": "Canopy Pulse",
-    "artist": "Sample Library",
+    "artist": "Streaming Sample",
     "bpm": 82,
-    "environmentTags": ["forest", "park"],
-    "musicTags": ["ambient", "acoustic", "calm"],
-    "audioPath": "assets/music/canopy_pulse.mp3"
+    "environmentTags": ["forest_mountain"],
+    "musicTags": ["forest", "mountain", "nature", "ambient", "calm"],
+    "audioUrl": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"
   },
   {
     "id": "sample_water_01",
     "title": "Blue Horizon",
-    "artist": "Sample Library",
+    "artist": "Streaming Sample",
     "bpm": 94,
     "environmentTags": ["water"],
-    "musicTags": ["chill", "atmospheric", "flowing"],
-    "audioPath": "assets/music/blue_horizon.mp3"
+    "musicTags": ["chill", "open", "flowing", "calm"],
+    "audioUrl": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3"
   },
   {
     "id": "sample_urban_01",
     "title": "Glass Avenue",
-    "artist": "Sample Library",
+    "artist": "Streaming Sample",
     "bpm": 124,
-    "environmentTags": ["urban", "road"],
-    "musicTags": ["electronic", "urban", "rhythmic"],
-    "audioPath": "assets/music/glass_avenue.mp3"
+    "environmentTags": ["urban"],
+    "musicTags": ["city", "electronic", "rhythmic"],
+    "audioUrl": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3"
   },
   {
     "id": "sample_water_02",
     "title": "Slow Current",
-    "artist": "Sample Library",
+    "artist": "Streaming Sample",
     "bpm": 76,
-    "environmentTags": ["water", "park", "forest"],
-    "musicTags": ["piano", "soft", "calm"],
-    "audioPath": "assets/music/slow_current.mp3"
+    "environmentTags": ["water", "park"],
+    "musicTags": ["piano", "flowing", "soft", "calm"],
+    "audioUrl": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3"
   },
   {
     "id": "sample_park_01",
     "title": "Green Noon",
-    "artist": "Sample Library",
+    "artist": "Streaming Sample",
     "bpm": 108,
-    "environmentTags": ["park", "urban"],
-    "musicTags": ["light", "happy", "acoustic"],
-    "audioPath": "assets/music/green_noon.mp3"
+    "environmentTags": ["park"],
+    "musicTags": ["green", "light", "happy", "acoustic"],
+    "audioUrl": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3"
   },
   {
     "id": "sample_road_01",
     "title": "Tide Runner",
-    "artist": "Sample Library",
+    "artist": "Streaming Sample",
     "bpm": 132,
-    "environmentTags": ["road", "water"],
-    "musicTags": ["energetic", "open", "electronic"],
-    "audioPath": "assets/music/tide_runner.mp3"
-  },
-  {
-    "id": "sample_campus_01",
-    "title": "Library Walk",
-    "artist": "Sample Library",
-    "bpm": 88,
-    "environmentTags": ["campus", "park"],
-    "musicTags": ["focus", "light", "calm"],
-    "audioPath": "assets/music/library_walk.mp3"
+    "environmentTags": ["road"],
+    "musicTags": ["highway", "travel", "driving", "energetic"],
+    "audioUrl": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3"
   }
 ]

@@ -1,10 +1,13 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
+import 'package:just_audio/just_audio.dart';
 
 void main() {
   runApp(const ContextAwareMusicApp());
@@ -64,13 +67,23 @@ class _HomeScreenState extends State<HomeScreen> {
   final _musicLibrary = MusicLibrary();
   final _contextService = ContextDetectionService();
   final _recommender = MusicRecommender();
+  final _bleService = CadenceBleService();
+  final _player = AudioPlayer();
 
   List<MusicTrack> _tracks = [];
-  EnvironmentContext _context = EnvironmentContext.mock('forest');
+  EnvironmentContext _context = EnvironmentContext.mock('forest_mountain');
   Recommendation? _recommendation;
+  BleDeviceReading? _bleReading;
   Position? _position;
   String? _status;
+  String _bleStatus = 'Disconnected';
   bool _loadingContext = false;
+  bool _bleBusy = false;
+  bool _bleConnected = false;
+  bool _isPlaying = false;
+  String? _playingTrackId;
+  String _playerStatus = 'Ready to stream';
+  StreamSubscription<PlayerState>? _playerStateSubscription;
 
   double _deviceBpm = 86;
   double _ambientVolume = 55;
@@ -78,6 +91,16 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    _playerStateSubscription = _player.playerStateStream.listen((state) {
+      if (!mounted) return;
+      setState(() {
+        _isPlaying = state.playing;
+        if (state.processingState == ProcessingState.completed) {
+          _playingTrackId = null;
+          _playerStatus = 'Playback completed';
+        }
+      });
+    });
     _loadLibrary();
   }
 
@@ -145,6 +168,116 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  Future<void> _playRecommendation() async {
+    final recommendation = _recommendation;
+    if (recommendation == null) return;
+
+    setState(() {
+      _playerStatus = 'Loading stream...';
+    });
+
+    try {
+      await _player.setVolume(VolumeMapper.fromAmbient(_ambientVolume));
+      await _player.setUrl(recommendation.track.audioUrl);
+      await _player.play();
+      setState(() {
+        _playingTrackId = recommendation.track.id;
+        _playerStatus = 'Streaming ${recommendation.track.title}';
+      });
+    } catch (error) {
+      setState(() {
+        _playingTrackId = null;
+        _playerStatus = 'Playback failed: ${ErrorText.short(error)}';
+      });
+    }
+  }
+
+  Future<void> _stopPlayback() async {
+    await _player.stop();
+    setState(() {
+      _playingTrackId = null;
+      _playerStatus = 'Playback stopped';
+    });
+  }
+
+  Future<void> _syncPlayerVolume() async {
+    await _player.setVolume(VolumeMapper.fromAmbient(_ambientVolume));
+  }
+
+  Future<void> _connectBleDevice() async {
+    setState(() {
+      _bleBusy = true;
+      _bleStatus = 'Scanning for CadenceMic...';
+    });
+
+    try {
+      await _bleService.connect(
+        onStatus: (status) {
+          if (!mounted) return;
+          setState(() {
+            _bleStatus = status;
+          });
+        },
+        onDisconnected: () {
+          if (!mounted) return;
+          setState(() {
+            _bleConnected = false;
+            _bleStatus = 'Disconnected';
+          });
+        },
+        onReading: (reading) {
+          if (!mounted) return;
+          setState(() {
+            _bleReading = reading;
+            _bleConnected = true;
+            _bleStatus = 'Connected to CadenceMic';
+            if (reading.bpm > 0) _deviceBpm = reading.bpm.toDouble();
+            _ambientVolume = reading.ambient.clamp(0, 100);
+            _recommendation = _recommender.recommend(
+              context: _context,
+              bpm: _deviceBpm.round(),
+              tracks: _tracks,
+            );
+          });
+          _syncPlayerVolume();
+        },
+      );
+      setState(() {
+        _bleConnected = true;
+      });
+    } catch (error) {
+      setState(() {
+        _bleStatus = ErrorText.short(error);
+        _bleConnected = false;
+      });
+    } finally {
+      setState(() {
+        _bleBusy = false;
+      });
+    }
+  }
+
+  Future<void> _disconnectBleDevice() async {
+    setState(() {
+      _bleBusy = true;
+      _bleStatus = 'Disconnecting...';
+    });
+    await _bleService.disconnect();
+    setState(() {
+      _bleBusy = false;
+      _bleConnected = false;
+      _bleStatus = 'Disconnected';
+    });
+  }
+
+  @override
+  void dispose() {
+    _bleService.dispose();
+    _playerStateSubscription?.cancel();
+    _player.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final outputVolume = VolumeMapper.fromAmbient(_ambientVolume);
@@ -187,12 +320,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     runSpacing: 8,
                     children: [
                       for (final item in const [
-                        'forest',
+                        'forest_mountain',
                         'water',
                         'park',
                         'urban',
                         'road',
-                        'campus',
                       ])
                         ChoiceChip(
                           label: Text(item),
@@ -223,6 +355,15 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  _BleStatusPanel(
+                    status: _bleStatus,
+                    reading: _bleReading,
+                    connected: _bleConnected,
+                    busy: _bleBusy,
+                    onConnect: _connectBleDevice,
+                    onDisconnect: _disconnectBleDevice,
+                  ),
+                  const SizedBox(height: 14),
                   _LabeledSlider(
                     label: 'BPM from physical device',
                     value: _deviceBpm,
@@ -248,13 +389,21 @@ class _HomeScreenState extends State<HomeScreen> {
                       setState(() {
                         _ambientVolume = value;
                       });
+                      _syncPlayerVolume();
                     },
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 12),
-            _RecommendationPanel(recommendation: _recommendation),
+            _RecommendationPanel(
+              recommendation: _recommendation,
+              isPlaying: _isPlaying &&
+                  _playingTrackId == _recommendation?.track.id,
+              playerStatus: _playerStatus,
+              onPlay: _playRecommendation,
+              onStop: _stopPlayback,
+            ),
             const SizedBox(height: 12),
             _SectionCard(
               title: 'Sample Library',
@@ -284,7 +433,7 @@ class MusicTrack {
     required this.bpm,
     required this.environmentTags,
     required this.musicTags,
-    required this.audioPath,
+    required this.audioUrl,
   });
 
   final String id;
@@ -293,7 +442,7 @@ class MusicTrack {
   final int bpm;
   final List<String> environmentTags;
   final List<String> musicTags;
-  final String audioPath;
+  final String audioUrl;
 
   factory MusicTrack.fromJson(Map<String, dynamic> json) {
     return MusicTrack(
@@ -303,7 +452,7 @@ class MusicTrack {
       bpm: json['bpm'] as int,
       environmentTags: List<String>.from(json['environmentTags'] as List),
       musicTags: List<String>.from(json['musicTags'] as List),
-      audioPath: json['audioPath'] as String,
+      audioUrl: (json['audioUrl'] ?? json['audioPath']) as String,
     );
   }
 }
@@ -431,15 +580,203 @@ class VolumeMapper {
   }
 }
 
+class BleDeviceReading {
+  const BleDeviceReading({
+    required this.bpm,
+    required this.ambient,
+    required this.current,
+    required this.step,
+    required this.raw,
+  });
+
+  final int bpm;
+  final double ambient;
+  final double current;
+  final bool step;
+  final String raw;
+
+  factory BleDeviceReading.fromJsonText(String raw) {
+    final data = jsonDecode(raw) as Map<String, dynamic>;
+    return BleDeviceReading(
+      bpm: (data['bpm'] as num? ?? 0).round(),
+      ambient: (data['ambient'] as num? ?? 0).toDouble(),
+      current: (data['current'] as num? ?? 0).toDouble(),
+      step: (data['step'] as num? ?? 0) == 1,
+      raw: raw,
+    );
+  }
+}
+
+class CadenceBleService {
+  static final Guid serviceUuid = Guid(
+    '12345678-1234-1234-1234-1234567890ab',
+  );
+  static final Guid characteristicUuid = Guid(
+    'abcdefab-1234-5678-1234-abcdefabcdef',
+  );
+
+  BluetoothDevice? _device;
+  StreamSubscription<List<int>>? _valueSubscription;
+  StreamSubscription<BluetoothConnectionState>? _connectionSubscription;
+
+  Future<void> connect({
+    required ValueChanged<String> onStatus,
+    required ValueChanged<BleDeviceReading> onReading,
+    required VoidCallback onDisconnected,
+  }) async {
+    await disconnect();
+
+    final adapterState = await FlutterBluePlus.adapterState.first;
+    if (adapterState != BluetoothAdapterState.on) {
+      throw Exception('Bluetooth is not on');
+    }
+
+    final device = await _findCadenceMic(onStatus);
+    _device = device;
+
+    onStatus('Connecting to ${_deviceName(device)}...');
+    await device.connect(
+      license: License.nonprofit,
+      timeout: const Duration(seconds: 15),
+    );
+
+    _connectionSubscription = device.connectionState.listen((state) {
+      if (state == BluetoothConnectionState.disconnected) {
+        onDisconnected();
+      }
+    });
+
+    onStatus('Discovering BLE services...');
+    final services = await device.discoverServices();
+    final service = services.firstWhere(
+      (item) => item.serviceUuid == serviceUuid,
+      orElse: () => throw Exception('CadenceMic service not found'),
+    );
+    final characteristic = service.characteristics.firstWhere(
+      (item) => item.characteristicUuid == characteristicUuid,
+      orElse: () => throw Exception('CadenceMic data characteristic not found'),
+    );
+
+    _valueSubscription = characteristic.onValueReceived.listen((value) {
+      final raw = utf8.decode(value).trim();
+      if (raw.isEmpty) return;
+      onReading(BleDeviceReading.fromJsonText(raw));
+    });
+
+    await characteristic.setNotifyValue(true);
+    onStatus('Connected to CadenceMic');
+
+    try {
+      final value = await characteristic.read();
+      if (value.isNotEmpty) {
+        final raw = utf8.decode(value).trim();
+        onReading(BleDeviceReading.fromJsonText(raw));
+      }
+    } catch (_) {
+      // Notify is the primary data path; read is only a best-effort initial value.
+    }
+  }
+
+  Future<BluetoothDevice> _findCadenceMic(ValueChanged<String> onStatus) async {
+    BluetoothDevice? found;
+    StreamSubscription<List<ScanResult>>? scanSubscription;
+
+    Future<BluetoothDevice?> runScan({
+      required String label,
+      List<Guid> withServices = const [],
+      List<String> withNames = const [],
+    }) async {
+      found = null;
+      onStatus(label);
+      scanSubscription = FlutterBluePlus.onScanResults.listen((results) {
+        for (final result in results) {
+          final device = result.device;
+          final names = {
+            device.platformName,
+            device.advName,
+            result.advertisementData.advName,
+          };
+          if (names.contains('CadenceMic') ||
+              result.advertisementData.serviceUuids.contains(serviceUuid)) {
+            found = device;
+            FlutterBluePlus.stopScan();
+            break;
+          }
+        }
+      });
+
+      await FlutterBluePlus.startScan(
+        withServices: withServices,
+        withNames: withNames,
+        timeout: const Duration(seconds: 8),
+        androidUsesFineLocation: true,
+      );
+      await FlutterBluePlus.isScanning.where((scanning) => !scanning).first;
+      await scanSubscription?.cancel();
+      scanSubscription = null;
+      return found;
+    }
+
+    final byService = await runScan(
+      label: 'Scanning for CadenceMic service...',
+      withServices: [serviceUuid],
+    );
+    if (byService != null) return byService;
+
+    final byName = await runScan(
+      label: 'Scanning for CadenceMic name...',
+      withNames: const ['CadenceMic'],
+    );
+    if (byName != null) return byName;
+
+    throw Exception('CadenceMic not found. Check power and advertising.');
+  }
+
+  Future<void> disconnect() async {
+    await _valueSubscription?.cancel();
+    await _connectionSubscription?.cancel();
+    _valueSubscription = null;
+    _connectionSubscription = null;
+
+    try {
+      await FlutterBluePlus.stopScan();
+    } catch (_) {}
+
+    final device = _device;
+    _device = null;
+    if (device != null) {
+      try {
+        await device.disconnect();
+      } catch (_) {}
+    }
+  }
+
+  Future<void> dispose() => disconnect();
+
+  String _deviceName(BluetoothDevice device) {
+    return device.platformName.isNotEmpty
+        ? device.platformName
+        : device.advName.isNotEmpty
+            ? device.advName
+            : device.remoteId.str;
+  }
+}
+
 class ContextVocabulary {
   static List<String> musicKeywords(String context) {
     return switch (context) {
-      'forest' => ['forest', 'park', 'nature', 'ambient', 'acoustic', 'calm'],
+      'forest_mountain' => [
+          'forest_mountain',
+          'forest',
+          'mountain',
+          'nature',
+          'ambient',
+          'calm',
+        ],
       'water' => ['water', 'flowing', 'open', 'chill', 'piano', 'calm'],
-      'park' => ['park', 'forest', 'green', 'light', 'happy', 'acoustic'],
+      'park' => ['park', 'green', 'light', 'happy', 'acoustic'],
       'urban' => ['urban', 'road', 'city', 'electronic', 'rhythmic'],
-      'road' => ['road', 'urban', 'rhythmic', 'energetic', 'electronic'],
-      'campus' => ['campus', 'park', 'study', 'focus', 'light', 'calm'],
+      'road' => ['road', 'highway', 'travel', 'driving', 'energetic'],
       _ => [context],
     };
   }
@@ -491,6 +828,7 @@ class ContextDetectionService {
   nwr(around:$radiusMeters,${position.latitude},${position.longitude})["highway"];
   nwr(around:$radiusMeters,${position.latitude},${position.longitude})["amenity"];
   nwr(around:$radiusMeters,${position.latitude},${position.longitude})["place"];
+  nwr(around:$radiusMeters,${position.latitude},${position.longitude})["tourism"];
 );
 out tags 120;
 ''';
@@ -567,16 +905,22 @@ out tags 120;
       final building = tags['building'];
       final highway = tags['highway'];
       final place = tags['place'];
+      final tourism = tags['tourism'];
 
-      if (_isCampus(tags)) {
-        add('campus', 4);
-        add('urban', 0.4);
-      }
       if (natural == 'wood' ||
           natural == 'tree_row' ||
+          natural == 'scrub' ||
+          natural == 'heath' ||
+          natural == 'peak' ||
+          natural == 'ridge' ||
+          natural == 'cliff' ||
+          natural == 'bare_rock' ||
+          natural == 'scree' ||
+          natural == 'fell' ||
           landuse == 'forest' ||
-          landuse == 'orchard') {
-        add('forest', 3);
+          landuse == 'orchard' ||
+          tourism == 'viewpoint') {
+        add('forest_mountain', _forestMountainWeight(natural, landuse));
       }
       if (natural == 'water' ||
           natural == 'coastline' ||
@@ -588,18 +932,19 @@ out tags 120;
       }
       if (leisure == 'park' ||
           leisure == 'garden' ||
+          leisure == 'nature_reserve' ||
           landuse == 'grass' ||
           landuse == 'recreation_ground') {
         add('park', 2.8);
       }
-      if (highway != null) {
+      if (_isRoadContext(highway)) {
         add('road', _roadWeight(highway));
-        add('urban', 0.35);
+        if (_isMajorRoad(highway)) add('urban', 0.25);
       }
-      if (building != null && !_isCampus(tags)) {
+      if (building != null) {
         add('urban', 1.1);
       }
-      if (amenity != null && !_isCampus(tags)) {
+      if (amenity != null) {
         add('urban', 1.0);
       }
       if (place == 'city' ||
@@ -613,28 +958,41 @@ out tags 120;
     return scores;
   }
 
-  bool _isCampus(Map<String, dynamic> tags) {
-    final amenity = tags['amenity'];
-    final landuse = tags['landuse'];
-    final building = tags['building'];
+  double _forestMountainWeight(dynamic natural, dynamic landuse) {
+    if (natural == 'peak' ||
+        natural == 'ridge' ||
+        natural == 'cliff' ||
+        natural == 'bare_rock' ||
+        natural == 'scree' ||
+        natural == 'fell') {
+      return 4.2;
+    }
+    if (natural == 'wood' || landuse == 'forest') return 3.5;
+    return 2.2;
+  }
 
-    return amenity == 'university' ||
-        amenity == 'college' ||
-        amenity == 'school' ||
-        amenity == 'kindergarten' ||
-        landuse == 'education' ||
-        building == 'university' ||
-        building == 'college' ||
-        building == 'school' ||
-        building == 'kindergarten';
+  bool _isRoadContext(dynamic highway) {
+    return _roadWeight(highway) > 0;
+  }
+
+  bool _isMajorRoad(dynamic highway) {
+    return highway == 'motorway' ||
+        highway == 'trunk' ||
+        highway == 'primary' ||
+        highway == 'secondary' ||
+        highway == 'tertiary';
   }
 
   double _roadWeight(dynamic highway) {
     return switch (highway) {
-      'motorway' || 'trunk' || 'primary' || 'secondary' => 2.2,
-      'tertiary' || 'residential' || 'service' => 1.7,
-      'footway' || 'path' || 'cycleway' || 'pedestrian' => 0.8,
-      _ => 1.2,
+      'motorway' || 'trunk' => 4.0,
+      'primary' => 3.5,
+      'secondary' => 3.0,
+      'tertiary' => 2.2,
+      'cycleway' || 'pedestrian' => 1.4,
+      'footway' || 'path' || 'steps' => 1.2,
+      'residential' || 'service' || 'living_street' => 0.7,
+      _ => 0,
     };
   }
 }
@@ -735,9 +1093,19 @@ class _SectionCard extends StatelessWidget {
 }
 
 class _RecommendationPanel extends StatelessWidget {
-  const _RecommendationPanel({required this.recommendation});
+  const _RecommendationPanel({
+    required this.recommendation,
+    required this.isPlaying,
+    required this.playerStatus,
+    required this.onPlay,
+    required this.onStop,
+  });
 
   final Recommendation? recommendation;
+  final bool isPlaying;
+  final String playerStatus;
+  final Future<void> Function() onPlay;
+  final Future<void> Function() onStop;
 
   @override
   Widget build(BuildContext context) {
@@ -772,6 +1140,19 @@ class _RecommendationPanel extends StatelessWidget {
           const SizedBox(height: 12),
           _InfoRow(label: 'Reason', value: rec.reason),
           _InfoRow(label: 'Tags', value: rec.track.environmentTags.join(', ')),
+          _InfoRow(label: 'Stream', value: rec.track.audioUrl),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              FilledButton.icon(
+                onPressed: isPlaying ? onStop : onPlay,
+                icon: Icon(isPlaying ? Icons.stop : Icons.play_arrow),
+                label: Text(isPlaying ? 'Stop' : 'Play stream'),
+              ),
+              const SizedBox(width: 12),
+              Expanded(child: _MutedText(playerStatus)),
+            ],
+          ),
         ],
       ),
     );
@@ -867,6 +1248,103 @@ class _LabeledSlider extends StatelessWidget {
           onChanged: onChanged,
         ),
       ],
+    );
+  }
+}
+
+class _BleStatusPanel extends StatelessWidget {
+  const _BleStatusPanel({
+    required this.status,
+    required this.reading,
+    required this.connected,
+    required this.busy,
+    required this.onConnect,
+    required this.onDisconnect,
+  });
+
+  final String status;
+  final BleDeviceReading? reading;
+  final bool connected;
+  final bool busy;
+  final Future<void> Function() onConnect;
+  final Future<void> Function() onDisconnect;
+
+  @override
+  Widget build(BuildContext context) {
+    final reading = this.reading;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                connected ? Icons.bluetooth_connected : Icons.bluetooth,
+                color: connected
+                    ? Theme.of(context).colorScheme.primary
+                    : Colors.white.withValues(alpha: 0.68),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'CadenceMic BLE',
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+              ),
+              FilledButton.icon(
+                onPressed: busy
+                    ? null
+                    : connected
+                        ? onDisconnect
+                        : onConnect,
+                icon: busy
+                    ? const SizedBox.square(
+                        dimension: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Icon(connected ? Icons.link_off : Icons.link),
+                label: Text(connected ? 'Disconnect' : 'Connect'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          _MutedText(status),
+          if (reading != null) ...[
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _MetricPill(icon: Icons.favorite, label: '${reading.bpm} bpm'),
+                _MetricPill(
+                  icon: Icons.volume_up,
+                  label: 'ambient ${reading.ambient.toStringAsFixed(1)}',
+                ),
+                _MetricPill(
+                  icon: Icons.graphic_eq,
+                  label: 'current ${reading.current.toStringAsFixed(1)}',
+                ),
+                _MetricPill(
+                  icon: reading.step ? Icons.directions_walk : Icons.pause,
+                  label: reading.step ? 'step' : 'no step',
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            _MutedText(reading.raw),
+          ],
+        ],
+      ),
     );
   }
 }

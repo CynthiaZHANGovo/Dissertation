@@ -10,6 +10,6 @@ void main() {
     expect(find.text('Context Aware Music'), findsWidgets);
     expect(find.text('Environment'), findsOneWidget);
     expect(find.text('Device Input'), findsOneWidget);
-    expect(find.text('FOREST'), findsOneWidget);
+    expect(find.text('FOREST_MOUNTAIN'), findsOneWidget);
   });
 }
