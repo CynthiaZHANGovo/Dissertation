@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="In Tune is a context-aware music system that responds to a runner's environment, rhythm, and surrounding sound."
+    />
+    <meta name="theme-color" content="#111716" />
+    <link rel="canonical" href="https://cynthiazhangovo.github.io/InTune/" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <title>In Tune | Context-aware music for outdoor exercise</title>
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="#top" aria-label="In Tune home">
+        <span class="brand-mark" aria-hidden="true">
+          <span></span><span></span><span></span><span></span><span></span>
+        </span>
+        <span>In Tune</span>
+      </a>
+      <nav aria-label="Primary navigation">
+        <a href="#system">How it works</a>
+        <a href="#project">About</a>
+        <a class="nav-download" href="#download">
+          <i data-lucide="download" aria-hidden="true"></i>
+          Download
+        </a>
+      </nav>
+    </header>
+
+    <main id="top">
+      <section class="hero" aria-labelledby="hero-title">
+        <img
+          class="hero-image"
+          src="assets/in-tune-hero.png"
+          alt="A runner moving through forest, waterside, and urban environments with subtle rhythm and sound traces"
+        />
+        <div class="hero-scrim" aria-hidden="true"></div>
+        <div class="hero-content">
+          <p class="eyebrow">Context-aware music for outdoor exercise</p>
+          <h1 id="hero-title">In Tune</h1>
+          <p class="hero-copy">
+            A responsive soundtrack shaped by where you run, how you move, and
+            what you hear around you.
+          </p>
+          <div class="hero-actions">
+            <a
+              class="button button-primary"
+              href="https://github.com/CynthiaZHANGovo/InTune/releases/latest/download/InTune.apk"
+            >
+              <i data-lucide="smartphone" aria-hidden="true"></i>
+              Download Android APK
+            </a>
+            <a class="button button-ghost" href="#system">
+              <i data-lucide="route" aria-hidden="true"></i>
+              Explore the system
+            </a>
+          </div>
+        </div>
+        <div class="live-strip" aria-label="System inputs and output">
+          <div>
+            <i data-lucide="map-pin" aria-hidden="true"></i>
+            <span>Environment</span>
+            <strong>GPS + OpenStreetMap</strong>
+          </div>
+          <div>
+            <i data-lucide="activity" aria-hidden="true"></i>
+            <span>Movement</span>
+            <strong>Wearable rhythm</strong>
+          </div>
+          <div>
+            <i data-lucide="audio-lines" aria-hidden="true"></i>
+            <span>Sound</span>
+            <strong>Adaptive music</strong>
+          </div>
+        </div>
+      </section>
+
+      <section class="intro section" id="project">
+        <div class="section-label">The project</div>
+        <div class="intro-copy">
+          <h2>Music that moves with the world around you.</h2>
+          <p>
+            Music can shape the way we experience exercise, but a fixed
+            playlist cannot respond to changing surroundings or movement.
+            <strong>In Tune</strong> explores how people, places, and music can
+            work together by first understanding which environments different
+            pieces of music best suit.
+          </p>
+          <p>
+            It uses GPS to recognise the runner's surroundings and a wearable
+            device to monitor running rhythm and ambient sound. By bringing
+            these together, the system matches music to the environment,
+            selects music around the runner's pace, and balances playback
+            volume with the surrounding sound.
+          </p>
+        </div>
+      </section>
+
+      <section class="system section" id="system" aria-labelledby="system-title">
+        <div class="system-heading">
+          <p class="section-label">A responsive loop</p>
+          <h2 id="system-title">Place, pace, and sound become one soundtrack.</h2>
+        </div>
+
+        <div class="system-flow">
+          <article>
+            <span class="step-number">01</span>
+            <i data-lucide="navigation" aria-hidden="true"></i>
+            <h3>Sense place</h3>
+            <p>
+              GPS and OpenStreetMap recognise forest and mountain, water,
+              park, urban, or road environments.
+            </p>
+          </article>
+          <article>
+            <span class="step-number">02</span>
+            <i data-lucide="bluetooth" aria-hidden="true"></i>
+            <h3>Read movement</h3>
+            <p>
+              A wearable device sends running rhythm and surrounding sound to
+              the app over Bluetooth.
+            </p>
+          </article>
+          <article>
+            <span class="step-number">03</span>
+            <i data-lucide="music-2" aria-hidden="true"></i>
+            <h3>Match music</h3>
+            <p>
+              Environment tags and a flexible BPM range select music that fits
+              both the place and the runner.
+            </p>
+          </article>
+          <article>
+            <span class="step-number">04</span>
+            <i data-lucide="volume-2" aria-hidden="true"></i>
+            <h3>Adapt playback</h3>
+            <p>
+              Music streams to the phone while output volume responds to the
+              ambient sound level.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="contexts section" aria-labelledby="contexts-title">
+        <div>
+          <p class="section-label">Environmental contexts</p>
+          <h2 id="contexts-title">The same run can pass through many moods.</h2>
+        </div>
+        <div class="context-list" aria-label="Supported environment classes">
+          <span><i data-lucide="mountain-snow"></i> Forest + mountain</span>
+          <span><i data-lucide="waves"></i> Water</span>
+          <span><i data-lucide="trees"></i> Park</span>
+          <span><i data-lucide="building-2"></i> Urban</span>
+          <span><i data-lucide="milestone"></i> Road</span>
+        </div>
+      </section>
+
+      <section class="technology section" aria-labelledby="technology-title">
+        <div class="technology-copy">
+          <p class="section-label">Behind the experience</p>
+          <h2 id="technology-title">Built as a connected system.</h2>
+          <p>
+            In Tune combines a Flutter Android application, GPS, Overpass API
+            context detection, a custom BLE sensing device, preprocessed music
+            metadata, and online audio streaming.
+          </p>
+        </div>
+        <dl class="technology-list">
+          <div>
+            <dt>Context</dt>
+            <dd>GPS + Overpass API</dd>
+          </div>
+          <div>
+            <dt>Wearable</dt>
+            <dd>ESP32 BLE + microphone</dd>
+          </div>
+          <div>
+            <dt>Music data</dt>
+            <dd>Environment tags + BPM</dd>
+          </div>
+          <div>
+            <dt>Application</dt>
+            <dd>Flutter for Android</dd>
+          </div>
+        </dl>
+      </section>
+
+      <section class="download-section section" id="download">
+        <div class="download-copy">
+          <p class="section-label">Exhibition build</p>
+          <h2>Take In Tune outside.</h2>
+          <p>
+            Download the Android APK to explore the prototype. Bluetooth,
+            location, and internet access are required for the full connected
+            experience.
+          </p>
+          <div class="download-actions">
+            <a
+              class="button button-primary"
+              href="https://github.com/CynthiaZHANGovo/InTune/releases/latest/download/InTune.apk"
+            >
+              <i data-lucide="download" aria-hidden="true"></i>
+              Download APK
+            </a>
+            <a
+              class="button button-outline"
+              href="https://github.com/CynthiaZHANGovo/InTune"
+            >
+              <i data-lucide="github" aria-hidden="true"></i>
+              View on GitHub
+            </a>
+          </div>
+        </div>
+        <div class="qr-panel">
+          <img
+            src="assets/in-tune-qr.png"
+            alt="QR code for the In Tune exhibition website"
+            width="256"
+            height="256"
+          />
+          <p>Scan to revisit In Tune</p>
+          <a href="https://cynthiazhangovo.github.io/InTune/">
+            cynthiazhangovo.github.io/InTune
+          </a>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div>
+        <strong>In Tune</strong>
+        <span>Responsive music for outdoor movement</span>
+      </div>
+      <div>
+        <a href="https://github.com/CynthiaZHANGovo/InTune">GitHub</a>
+        <span aria-hidden="true">·</span>
+        <a href="#top">Back to top</a>
+      </div>
+    </footer>
+
+    <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+    <script src="script.js"></script>
+  </body>
+</html>
