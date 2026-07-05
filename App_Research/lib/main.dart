@@ -69,6 +69,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final _recommender = MusicRecommender();
   final _bleService = CadenceBleService();
   final _player = AudioPlayer();
+  final _sensorFilter = SensorInputFilter();
 
   List<MusicTrack> _tracks = [];
   EnvironmentContext _context = EnvironmentContext.mock('forest_mountain');
@@ -87,6 +88,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   double _deviceBpm = 86;
   double _ambientVolume = 55;
+  double _lastRecommendedBpm = 86;
+  DateTime _lastSensorRecommendationAt = DateTime.fromMillisecondsSinceEpoch(0);
 
   @override
   void initState() {
@@ -165,6 +168,7 @@ class _HomeScreenState extends State<HomeScreen> {
         bpm: _deviceBpm.round(),
         tracks: _tracks,
       );
+      _lastRecommendedBpm = _deviceBpm;
     });
   }
 
@@ -227,19 +231,38 @@ class _HomeScreenState extends State<HomeScreen> {
         },
         onReading: (reading) {
           if (!mounted) return;
+          final filtered = _sensorFilter.accept(
+            reading,
+            currentBpm: _deviceBpm,
+            currentAmbient: _ambientVolume,
+          );
+          final now = DateTime.now();
+          final shouldRefreshRecommendation =
+              filtered.bpmAccepted &&
+              (filtered.bpm - _lastRecommendedBpm).abs() >= 8 &&
+              now.difference(_lastSensorRecommendationAt) >=
+                  const Duration(seconds: 5);
+
           setState(() {
             _bleReading = reading;
             _bleConnected = true;
             _bleStatus = 'Connected to CadenceMic';
-            if (reading.bpm > 0) _deviceBpm = reading.bpm.toDouble();
-            _ambientVolume = reading.ambient.clamp(0, 100);
-            _recommendation = _recommender.recommend(
-              context: _context,
-              bpm: _deviceBpm.round(),
-              tracks: _tracks,
-            );
+            if (filtered.bpmAccepted) _deviceBpm = filtered.bpm;
+            if (filtered.ambientAccepted) {
+              _ambientVolume = filtered.ambient;
+            }
+            if (shouldRefreshRecommendation &&
+                (_deviceBpm - _lastRecommendedBpm).abs() >= 8) {
+              _recommendation = _recommender.recommend(
+                context: _context,
+                bpm: _deviceBpm.round(),
+                tracks: _tracks,
+              );
+              _lastRecommendedBpm = _deviceBpm;
+              _lastSensorRecommendationAt = now;
+            }
           });
-          _syncPlayerVolume();
+          if (filtered.ambientAccepted) _syncPlayerVolume();
         },
       );
       setState(() {
@@ -368,8 +391,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     label: 'BPM from physical device',
                     value: _deviceBpm,
                     min: 50,
-                    max: 160,
-                    divisions: 110,
+                    max: 200,
+                    divisions: 150,
                     displayValue: '${_deviceBpm.round()} bpm',
                     onChanged: (value) {
                       _deviceBpm = value;
@@ -398,8 +421,8 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 12),
             _RecommendationPanel(
               recommendation: _recommendation,
-              isPlaying: _isPlaying &&
-                  _playingTrackId == _recommendation?.track.id,
+              isPlaying:
+                  _isPlaying && _playingTrackId == _recommendation?.track.id,
               playerStatus: _playerStatus,
               onPlay: _playRecommendation,
               onStop: _stopPlayback,
@@ -540,12 +563,9 @@ class MusicRecommender {
         reason:
             'Matched ${matched.isEmpty ? context.primary : matched.join(', ')}; track BPM ${track.bpm} vs target ${targetRange.min}-${targetRange.max}.',
       );
-    }).toList()
-      ..sort((a, b) => b.score.compareTo(a.score));
+    }).toList()..sort((a, b) => b.score.compareTo(a.score));
 
-    final top = ranked.take(3).where((item) => item.score > 0).toList();
-    if (top.isEmpty) return ranked.first;
-    return top[Random().nextInt(top.length)];
+    return ranked.first;
   }
 
   IntRange _rangeForBpm(int bpm) {
@@ -576,7 +596,72 @@ class MusicRecommender {
 
 class VolumeMapper {
   static double fromAmbient(double ambientVolume) {
-    return (0.3 + (ambientVolume / 100) * 0.5).clamp(0.3, 0.8);
+    if (!ambientVolume.isFinite) return 0.55;
+    final safeAmbient = ambientVolume.clamp(20, 80);
+    final normalized = (safeAmbient - 20) / 60;
+    return (0.3 + normalized * 0.5).clamp(0.3, 0.8);
+  }
+}
+
+class FilteredSensorInput {
+  const FilteredSensorInput({
+    required this.bpm,
+    required this.ambient,
+    required this.bpmAccepted,
+    required this.ambientAccepted,
+  });
+
+  final double bpm;
+  final double ambient;
+  final bool bpmAccepted;
+  final bool ambientAccepted;
+}
+
+class SensorInputFilter {
+  double? _filteredBpm;
+  double? _filteredAmbient;
+
+  FilteredSensorInput accept(
+    BleDeviceReading reading, {
+    required double currentBpm,
+    required double currentAmbient,
+  }) {
+    final rawBpm = reading.bpm.toDouble();
+    final bpmAccepted = rawBpm.isFinite && rawBpm >= 45 && rawBpm <= 220;
+    var nextBpm = currentBpm.clamp(50, 200).toDouble();
+
+    if (bpmAccepted) {
+      final base = _filteredBpm ?? nextBpm;
+      final limitedTarget = base + (rawBpm - base).clamp(-12, 12).toDouble();
+      nextBpm = (base * 0.8 + limitedTarget * 0.2).clamp(50, 200).toDouble();
+      _filteredBpm = nextBpm;
+    }
+
+    final rawAmbient = reading.ambient;
+    final ambientAccepted =
+        rawAmbient.isFinite && rawAmbient >= 0.5 && rawAmbient <= 120;
+    var nextAmbient = currentAmbient.clamp(0, 100).toDouble();
+
+    if (ambientAccepted) {
+      final base = _filteredAmbient ?? nextAmbient;
+      final target = rawAmbient.clamp(10, 90).toDouble();
+      if ((target - base).abs() >= 1.5) {
+        final limitedTarget = base + (target - base).clamp(-8, 8).toDouble();
+        nextAmbient = (base * 0.9 + limitedTarget * 0.1)
+            .clamp(0, 100)
+            .toDouble();
+      } else {
+        nextAmbient = base;
+      }
+      _filteredAmbient = nextAmbient;
+    }
+
+    return FilteredSensorInput(
+      bpm: nextBpm,
+      ambient: nextAmbient,
+      bpmAccepted: bpmAccepted,
+      ambientAccepted: ambientAccepted,
+    );
   }
 }
 
@@ -587,6 +672,8 @@ class BleDeviceReading {
     required this.current,
     required this.step,
     required this.raw,
+    this.batteryPercent,
+    this.batteryVoltage,
   });
 
   final int bpm;
@@ -594,23 +681,64 @@ class BleDeviceReading {
   final double current;
   final bool step;
   final String raw;
+  final int? batteryPercent;
+  final double? batteryVoltage;
 
   factory BleDeviceReading.fromJsonText(String raw) {
     final data = jsonDecode(raw) as Map<String, dynamic>;
+    final battery = data['battery'];
+    final voltage = data['voltage'] ?? data['batteryV'];
+    final parsedBattery = battery is num ? battery.round() : null;
+    final parsedVoltage = voltage is num ? voltage.toDouble() : null;
+    final hasValidBattery =
+        parsedBattery != null &&
+        parsedBattery >= 0 &&
+        parsedBattery <= 100 &&
+        (parsedVoltage == null ||
+            (parsedVoltage.isFinite &&
+                parsedVoltage >= 2.5 &&
+                parsedVoltage <= 5));
+
     return BleDeviceReading(
       bpm: (data['bpm'] as num? ?? 0).round(),
       ambient: (data['ambient'] as num? ?? 0).toDouble(),
       current: (data['current'] as num? ?? 0).toDouble(),
       step: (data['step'] as num? ?? 0) == 1,
       raw: raw,
+      batteryPercent: hasValidBattery ? parsedBattery : null,
+      batteryVoltage: hasValidBattery && parsedVoltage != null
+          ? parsedVoltage
+          : null,
     );
   }
 }
 
+class BatteryRuntimeEstimator {
+  // Replace this after measuring one full discharge with the final hardware.
+  static const fullChargeRuntime = Duration(minutes: 318);
+
+  static Duration? remaining(int? batteryPercent) {
+    if (batteryPercent == null || batteryPercent < 0 || batteryPercent > 100) {
+      return null;
+    }
+
+    final minutes = (fullChargeRuntime.inMinutes * batteryPercent / 100)
+        .round();
+    return Duration(minutes: minutes);
+  }
+
+  static String approximateLabel(Duration duration) {
+    final minutes = duration.inMinutes;
+    if (minutes < 30) return 'Less than 30 min left';
+    if (minutes < 60) return 'Around 30–60 min left';
+
+    final lowerHours = minutes ~/ 60;
+    return 'Around $lowerHours–${lowerHours + 1} h left';
+  }
+}
+
 class CadenceBleService {
-  static final Guid serviceUuid = Guid(
-    '12345678-1234-1234-1234-1234567890ab',
-  );
+  static final Guid serviceUuid = Guid('12345678-1234-1234-1234-1234567890ab');
   static final Guid characteristicUuid = Guid(
     'abcdefab-1234-5678-1234-abcdefabcdef',
   );
@@ -658,9 +786,13 @@ class CadenceBleService {
     );
 
     _valueSubscription = characteristic.onValueReceived.listen((value) {
-      final raw = utf8.decode(value).trim();
-      if (raw.isEmpty) return;
-      onReading(BleDeviceReading.fromJsonText(raw));
+      try {
+        final raw = utf8.decode(value).trim();
+        if (raw.isEmpty) return;
+        onReading(BleDeviceReading.fromJsonText(raw));
+      } catch (_) {
+        onStatus('Connected; waiting for valid sensor data');
+      }
     });
 
     await characteristic.setNotifyValue(true);
@@ -757,8 +889,8 @@ class CadenceBleService {
     return device.platformName.isNotEmpty
         ? device.platformName
         : device.advName.isNotEmpty
-            ? device.advName
-            : device.remoteId.str;
+        ? device.advName
+        : device.remoteId.str;
   }
 }
 
@@ -766,19 +898,43 @@ class ContextVocabulary {
   static List<String> musicKeywords(String context) {
     return switch (context) {
       'forest_mountain' => [
-          'forest_mountain',
-          'forest',
-          'mountain',
-          'nature',
-          'ambient',
-          'calm',
-        ],
+        'forest_mountain',
+        'forest',
+        'mountain',
+        'nature',
+        'ambient',
+        'calm',
+      ],
       'water' => ['water', 'flowing', 'open', 'chill', 'piano', 'calm'],
       'park' => ['park', 'green', 'light', 'happy', 'acoustic'],
       'urban' => ['urban', 'road', 'city', 'electronic', 'rhythmic'],
       'road' => ['road', 'highway', 'travel', 'driving', 'energetic'],
       _ => [context],
     };
+  }
+}
+
+class ContextSelector {
+  static const _priority = ['park', 'forest_mountain', 'water', 'road'];
+
+  static const _minimumEvidence = {
+    'forest_mountain': 3.5,
+    'water': 3.0,
+    'park': 2.8,
+    'road': 2.2,
+  };
+
+  static bool isMeaningful(String context, double score) {
+    return score >= (_minimumEvidence[context] ?? double.infinity);
+  }
+
+  static String primaryFromScores(Map<String, double> scores) {
+    for (final context in _priority) {
+      if (isMeaningful(context, scores[context] ?? 0)) {
+        return context;
+      }
+    }
+    return 'urban';
   }
 }
 
@@ -816,21 +972,20 @@ class ContextDetectionService {
   }
 
   Future<EnvironmentContext> detectNearbyContext(Position position) async {
-    final radiusMeters = 700;
-    final query = '''
+    final radiusMeters = 200;
+    final query =
+        '''
 [out:json][timeout:25];
 (
-  nwr(around:$radiusMeters,${position.latitude},${position.longitude})["natural"];
-  nwr(around:$radiusMeters,${position.latitude},${position.longitude})["landuse"];
+  nwr(around:$radiusMeters,${position.latitude},${position.longitude})["natural"~"^(wood|tree_row|scrub|heath|peak|ridge|cliff|bare_rock|scree|fell|water|coastline|beach)\$"];
+  nwr(around:$radiusMeters,${position.latitude},${position.longitude})["landuse"~"^(forest|orchard|reservoir|basin|grass|recreation_ground)\$"];
+  nwr(around:$radiusMeters,${position.latitude},${position.longitude})["water"];
   nwr(around:$radiusMeters,${position.latitude},${position.longitude})["waterway"];
-  nwr(around:$radiusMeters,${position.latitude},${position.longitude})["leisure"];
-  nwr(around:$radiusMeters,${position.latitude},${position.longitude})["building"];
-  nwr(around:$radiusMeters,${position.latitude},${position.longitude})["highway"];
-  nwr(around:$radiusMeters,${position.latitude},${position.longitude})["amenity"];
-  nwr(around:$radiusMeters,${position.latitude},${position.longitude})["place"];
-  nwr(around:$radiusMeters,${position.latitude},${position.longitude})["tourism"];
+  nwr(around:$radiusMeters,${position.latitude},${position.longitude})["leisure"~"^(park|garden|nature_reserve)\$"];
+  nwr(around:$radiusMeters,${position.latitude},${position.longitude})["highway"~"^(motorway|trunk|primary|secondary|tertiary|cycleway|pedestrian|footway|path|steps|residential|service|living_street)\$"];
+  nwr(around:$radiusMeters,${position.latitude},${position.longitude})["tourism"="viewpoint"];
 );
-out tags 120;
+out tags;
 ''';
 
     final response = await _queryOverpass(query);
@@ -838,12 +993,10 @@ out tags 120;
     final data = jsonDecode(response.body) as Map<String, dynamic>;
     final elements = (data['elements'] as List<dynamic>? ?? [])
         .cast<Map<String, dynamic>>();
-    final scores = _scoreElements(elements);
+    final scores = scoreElements(elements);
     if (scores.isEmpty) return EnvironmentContext.mock('urban');
 
-    final primary = scores.entries
-        .reduce((a, b) => a.value > b.value ? a : b)
-        .key;
+    final primary = ContextSelector.primaryFromScores(scores);
     return EnvironmentContext(
       primary: primary,
       musicKeywords: ContextVocabulary.musicKeywords(primary),
@@ -888,17 +1041,18 @@ out tags 120;
     throw Exception('Overpass HTTP ${status ?? 'unknown'}$detail');
   }
 
-  Map<String, double> _scoreElements(List<Map<String, dynamic>> elements) {
-    final scores = <String, double>{};
+  Map<String, double> scoreElements(List<Map<String, dynamic>> elements) {
+    final evidence = <String, List<double>>{};
 
     void add(String key, double value) {
-      scores[key] = (scores[key] ?? 0) + value;
+      evidence.putIfAbsent(key, () => []).add(value);
     }
 
     for (final element in elements) {
       final tags = (element['tags'] as Map<String, dynamic>? ?? {});
       final natural = tags['natural'];
       final landuse = tags['landuse'];
+      final water = tags['water'];
       final waterway = tags['waterway'];
       final leisure = tags['leisure'];
       final amenity = tags['amenity'];
@@ -925,6 +1079,10 @@ out tags 120;
       if (natural == 'water' ||
           natural == 'coastline' ||
           natural == 'beach' ||
+          water == 'river' ||
+          water == 'lake' ||
+          water == 'reservoir' ||
+          water == 'pond' ||
           waterway != null ||
           landuse == 'reservoir' ||
           landuse == 'basin') {
@@ -955,7 +1113,12 @@ out tags 120;
       }
     }
 
-    return scores;
+    return evidence.map((key, values) {
+      values.sort((a, b) => b.compareTo(a));
+      final strongest = values.take(3);
+      final score = strongest.reduce((a, b) => a + b) / strongest.length;
+      return MapEntry(key, score);
+    });
   }
 
   double _forestMountainWeight(dynamic natural, dynamic landuse) {
@@ -1031,9 +1194,9 @@ class _HeroPanel extends StatelessWidget {
           Text(
             contextLabel.toUpperCase(),
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 0,
-                ),
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0,
+            ),
           ),
           const SizedBox(height: 12),
           Row(
@@ -1073,13 +1236,17 @@ class _SectionCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
+                Icon(
+                  icon,
+                  size: 20,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
                 const SizedBox(width: 8),
                 Text(
                   title,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ],
             ),
@@ -1127,9 +1294,9 @@ class _RecommendationPanel extends StatelessWidget {
           Text(
             rec.track.title,
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 0,
-                ),
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0,
+            ),
           ),
           const SizedBox(height: 4),
           _MutedText('${rec.track.artist} • ${rec.track.bpm} bpm'),
@@ -1197,11 +1364,7 @@ class _MetricPill extends StatelessWidget {
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 18),
-          const SizedBox(width: 6),
-          Text(label),
-        ],
+        children: [Icon(icon, size: 18), const SizedBox(width: 6), Text(label)],
       ),
     );
   }
@@ -1272,6 +1435,9 @@ class _BleStatusPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final reading = this.reading;
+    final remaining = BatteryRuntimeEstimator.remaining(
+      reading?.batteryPercent,
+    );
 
     return Container(
       width: double.infinity,
@@ -1296,17 +1462,17 @@ class _BleStatusPanel extends StatelessWidget {
               Expanded(
                 child: Text(
                   'CadenceMic BLE',
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
                 ),
               ),
               FilledButton.icon(
                 onPressed: busy
                     ? null
                     : connected
-                        ? onDisconnect
-                        : onConnect,
+                    ? onDisconnect
+                    : onConnect,
                 icon: busy
                     ? const SizedBox.square(
                         dimension: 16,
@@ -1330,21 +1496,75 @@ class _BleStatusPanel extends StatelessWidget {
                   icon: Icons.volume_up,
                   label: 'ambient ${reading.ambient.toStringAsFixed(1)}',
                 ),
-                _MetricPill(
-                  icon: Icons.graphic_eq,
-                  label: 'current ${reading.current.toStringAsFixed(1)}',
-                ),
-                _MetricPill(
-                  icon: reading.step ? Icons.directions_walk : Icons.pause,
-                  label: reading.step ? 'step' : 'no step',
-                ),
+                if (reading.batteryPercent != null)
+                  _MetricPill(
+                    icon: Icons.battery_std,
+                    label: '${reading.batteryPercent}% battery',
+                  ),
+                if (reading.batteryVoltage != null)
+                  _MetricPill(
+                    icon: Icons.bolt,
+                    label: '${reading.batteryVoltage!.toStringAsFixed(2)} V',
+                  ),
               ],
             ),
-            const SizedBox(height: 8),
-            _MutedText(reading.raw),
+            if (remaining != null && reading.batteryPercent != null) ...[
+              const SizedBox(height: 12),
+              _BatteryEstimate(
+                percent: reading.batteryPercent!,
+                remaining: remaining,
+              ),
+            ],
           ],
         ],
       ),
+    );
+  }
+}
+
+class _BatteryEstimate extends StatelessWidget {
+  const _BatteryEstimate({required this.percent, required this.remaining});
+
+  final int percent;
+  final Duration remaining;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = percent <= 20
+        ? Theme.of(context).colorScheme.error
+        : Theme.of(context).colorScheme.primary;
+    final icon = percent <= 20
+        ? Icons.battery_alert
+        : percent < 60
+        ? Icons.battery_3_bar
+        : Icons.battery_full;
+
+    return Row(
+      children: [
+        Icon(icon, color: color),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: percent / 100,
+                  minHeight: 8,
+                  color: color,
+                  backgroundColor: Colors.white.withValues(alpha: 0.12),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                BatteryRuntimeEstimator.approximateLabel(remaining),
+                style: TextStyle(color: Colors.white.withValues(alpha: 0.78)),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
@@ -1371,10 +1591,7 @@ class _ScoreBar extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 10),
-        SizedBox(
-          width: 38,
-          child: Text('${(value * 100).round()}%'),
-        ),
+        SizedBox(width: 38, child: Text('${(value * 100).round()}%')),
       ],
     );
   }
