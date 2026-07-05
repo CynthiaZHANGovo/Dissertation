@@ -1,6 +1,6 @@
-# Context Music Exhibition
+# In Tune
 
-Exhibition-focused Flutter version of the context-aware music app.
+In Tune is a context-aware music experience for a landscape tablet.
 
 The app keeps the original Overpass context detection, CadenceMic BLE input,
 music recommendation, and streaming playback flow. For gallery use it starts
