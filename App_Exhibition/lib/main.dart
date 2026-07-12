@@ -306,7 +306,6 @@ class _ExhibitionDashboardState extends State<ExhibitionDashboard> {
   final _recommender = MusicRecommender();
   final _bleService = CadenceBleService();
   final _player = AudioPlayer();
-  final _sensorFilter = SensorInputFilter(initialBpm: 86, initialAmbient: 55);
   final _batteryFilter = BatteryReadingFilter();
 
   List<MusicTrack> _tracks = [];
@@ -437,7 +436,6 @@ class _ExhibitionDashboardState extends State<ExhibitionDashboard> {
     setState(() {
       if (bpm != null) _deviceBpm = bpm;
       if (ambient != null) _ambientVolume = ambient;
-      _sensorFilter.override(bpm: bpm, ambient: ambient);
       if (bpm != null) {
         _updateRecommendationState();
       }
@@ -467,12 +465,11 @@ class _ExhibitionDashboardState extends State<ExhibitionDashboard> {
         },
         onReading: (reading) {
           if (!mounted) return;
-          final filtered = _sensorFilter.accept(reading);
           final battery = _batteryFilter.accept(reading);
           setState(() {
             _bleReading = BleDeviceReading(
-              bpm: filtered.bpm.round(),
-              ambient: filtered.ambient,
+              bpm: reading.bpm,
+              ambient: reading.ambient,
               current: reading.current,
               step: reading.step,
               raw: reading.raw,
@@ -480,22 +477,14 @@ class _ExhibitionDashboardState extends State<ExhibitionDashboard> {
               voltage: battery.voltage,
             );
             _bleConnected = true;
-            _bleStatus = filtered.rejectedInput
-                ? 'CadenceMic live · unstable input ignored'
-                : 'CadenceMic live · input stabilised';
-            _deviceBpm = filtered.bpm;
-            _ambientVolume = filtered.ambient;
+            _bleStatus = 'CadenceMic live';
+            _deviceBpm = reading.bpm.toDouble();
+            _ambientVolume = reading.ambient;
             _batteryPercent = battery.percent;
-            if (filtered.bpmChanged) {
-              _updateRecommendationState();
-            }
+            _updateRecommendationState();
           });
-          if (filtered.bpmChanged) {
-            _autoSwitchRecommendation();
-          }
-          if (filtered.ambientChanged) {
-            _schedulePlayerVolumeSync();
-          }
+          _autoSwitchRecommendation();
+          _schedulePlayerVolumeSync();
         },
       );
       if (!mounted) return;
@@ -916,138 +905,6 @@ class InactivityGuard {
 
   void dispose() {
     cancel();
-  }
-}
-
-class FilteredSensorValues {
-  const FilteredSensorValues({
-    required this.bpm,
-    required this.ambient,
-    required this.bpmChanged,
-    required this.ambientChanged,
-    required this.rejectedInput,
-  });
-
-  final double bpm;
-  final double ambient;
-  final bool bpmChanged;
-  final bool ambientChanged;
-  final bool rejectedInput;
-}
-
-class SensorInputFilter {
-  SensorInputFilter({
-    required double initialBpm,
-    required double initialAmbient,
-  }) : _bpm = initialBpm,
-       _ambient = initialAmbient;
-
-  static const _minBpm = 45.0;
-  static const _maxBpm = 190.0;
-  static const _maxBpmJump = 35.0;
-  static const _ambientOutlierThreshold = 25.0;
-  static const _ambientConfirmationTolerance = 6.0;
-  static const _ambientDeadband = 0.35;
-
-  double _bpm;
-  double _ambient;
-  double? _pendingAmbient;
-  int _pendingAmbientSamples = 0;
-
-  FilteredSensorValues accept(BleDeviceReading reading) {
-    var bpmChanged = false;
-    var ambientChanged = false;
-    var rejectedInput = false;
-
-    final rawBpm = reading.bpm.toDouble();
-    if (rawBpm >= _minBpm &&
-        rawBpm <= _maxBpm &&
-        (rawBpm - _bpm).abs() <= _maxBpmJump) {
-      final nextBpm = _smooth(
-        current: _bpm,
-        target: rawBpm,
-        alpha: 0.24,
-        maxStep: 4,
-      );
-      bpmChanged = (nextBpm - _bpm).abs() >= 0.5;
-      if (bpmChanged) _bpm = nextBpm;
-    } else if (reading.bpm != 0) {
-      rejectedInput = true;
-    }
-
-    final rawAmbient = reading.ambient;
-    if (!rawAmbient.isFinite || rawAmbient < 0 || rawAmbient > 100) {
-      rejectedInput = true;
-    } else {
-      final jump = (rawAmbient - _ambient).abs();
-      if (jump > _ambientOutlierThreshold) {
-        final pending = _pendingAmbient;
-        if (pending != null &&
-            (rawAmbient - pending).abs() <= _ambientConfirmationTolerance) {
-          _pendingAmbientSamples += 1;
-        } else {
-          _pendingAmbient = rawAmbient;
-          _pendingAmbientSamples = 1;
-        }
-
-        if (_pendingAmbientSamples >= 3) {
-          final nextAmbient = _smooth(
-            current: _ambient,
-            target: rawAmbient,
-            alpha: 0.12,
-            maxStep: 3,
-          );
-          ambientChanged = (nextAmbient - _ambient).abs() >= _ambientDeadband;
-          if (ambientChanged) _ambient = nextAmbient;
-          _clearPendingAmbient();
-        } else {
-          rejectedInput = true;
-        }
-      } else {
-        _clearPendingAmbient();
-        final nextAmbient = _smooth(
-          current: _ambient,
-          target: rawAmbient,
-          alpha: 0.12,
-          maxStep: 3,
-        );
-        ambientChanged = (nextAmbient - _ambient).abs() >= _ambientDeadband;
-        if (ambientChanged) _ambient = nextAmbient;
-      }
-    }
-
-    return FilteredSensorValues(
-      bpm: _bpm,
-      ambient: _ambient,
-      bpmChanged: bpmChanged,
-      ambientChanged: ambientChanged,
-      rejectedInput: rejectedInput,
-    );
-  }
-
-  void override({double? bpm, double? ambient}) {
-    if (bpm != null && bpm.isFinite) {
-      _bpm = bpm.clamp(_minBpm, _maxBpm);
-    }
-    if (ambient != null && ambient.isFinite) {
-      _ambient = ambient.clamp(0, 100);
-      _clearPendingAmbient();
-    }
-  }
-
-  double _smooth({
-    required double current,
-    required double target,
-    required double alpha,
-    required double maxStep,
-  }) {
-    final desiredStep = (target - current) * alpha;
-    return current + desiredStep.clamp(-maxStep, maxStep);
-  }
-
-  void _clearPendingAmbient() {
-    _pendingAmbient = null;
-    _pendingAmbientSamples = 0;
   }
 }
 
@@ -1602,6 +1459,13 @@ class _TopBar extends StatelessWidget {
               _SoftText(
                 '${point.label}  ${point.latitude.toStringAsFixed(5)}, ${point.longitude.toStringAsFixed(5)}  ·  $status',
               ),
+              const SizedBox(height: 3),
+              Text(
+                'Choose another location to hear how the surrounding context changes the music.',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: Colors.white.withValues(alpha: 0.52)),
+              ),
             ],
           ),
         ),
@@ -1682,8 +1546,8 @@ class _ContextStage extends StatelessWidget {
               children: [
                 Expanded(
                   child: _MetricBlock(
-                    icon: Icons.favorite,
-                    label: 'BPM',
+                    icon: Icons.directions_walk,
+                    label: 'Cadence',
                     value: '$bpm',
                     color: ExhibitionColors.coral,
                   ),
@@ -1704,13 +1568,6 @@ class _ContextStage extends StatelessWidget {
                     label: 'Output',
                     value: '${(outputVolume * 100).round()}%',
                     color: ExhibitionColors.sun,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _BatteryRuntimeBlock(
-                    batteryPercent: batteryPercent,
-                    remainingTime: remainingTime,
                   ),
                 ),
               ],
@@ -2009,19 +1866,28 @@ class _ControlRail extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           _SoftText(bleStatus),
+          const SizedBox(height: 3),
+          Text(
+            connected
+                ? 'Live cadence, ambient sound and battery are read from the device.'
+                : 'Tap the link button to connect the physical sensor.',
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(color: Colors.white.withValues(alpha: 0.52)),
+          ),
           const SizedBox(height: 12),
           _LiveValue(
-            label: 'BPM',
+            label: 'Cadence',
             value: bpm.round().toString(),
-            icon: Icons.favorite,
+            icon: Icons.directions_walk,
             color: ExhibitionColors.coral,
           ),
           Slider(
-            value: bpm,
+            value: bpm.clamp(50, 160),
             min: 50,
             max: 160,
             divisions: 110,
-            label: '${bpm.round()} bpm',
+            label: '${bpm.round()} steps/min',
             onChanged: onBpmChanged,
           ),
           const SizedBox(height: 4),
@@ -2032,12 +1898,22 @@ class _ControlRail extends StatelessWidget {
             color: ExhibitionColors.sky,
           ),
           Slider(
-            value: ambient,
+            value: ambient.clamp(0, 100),
             min: 0,
             max: 100,
             divisions: 100,
             label: ambient.round().toString(),
             onChanged: onAmbientChanged,
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 76,
+            child: _BatteryRuntimeBlock(
+              batteryPercent: reading?.batteryPercent,
+              remainingTime: DeviceRuntimeEstimator.formatApproximate(
+                reading?.batteryPercent,
+              ),
+            ),
           ),
           const Spacer(),
           if (reading != null)
@@ -2384,7 +2260,10 @@ class _ReadingPanel extends StatelessWidget {
             spacing: 8,
             runSpacing: 8,
             children: [
-              _StatusBadge(icon: Icons.favorite, text: '${reading.bpm} bpm'),
+              _StatusBadge(
+                icon: Icons.directions_walk,
+                text: '${reading.bpm} steps/min',
+              ),
               _StatusBadge(
                 icon: Icons.graphic_eq,
                 text: reading.ambient.toStringAsFixed(1),

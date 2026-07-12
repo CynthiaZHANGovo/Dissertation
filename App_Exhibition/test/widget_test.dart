@@ -45,56 +45,10 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  group('sensor input stability', () {
-    BleDeviceReading reading({required int bpm, required double ambient}) {
-      return BleDeviceReading(
-        bpm: bpm,
-        ambient: ambient,
-        current: 0,
-        step: false,
-        raw: '{}',
-      );
-    }
-
-    test('keeps the last BPM when the device reports zero', () {
-      final filter = SensorInputFilter(initialBpm: 86, initialAmbient: 55);
-
-      final result = filter.accept(reading(bpm: 0, ambient: 55));
-
-      expect(result.bpm, 86);
-      expect(result.bpmChanged, isFalse);
-    });
-
-    test('rejects an ambient spike until it is confirmed', () {
-      final filter = SensorInputFilter(initialBpm: 86, initialAmbient: 55);
-
-      final first = filter.accept(reading(bpm: 86, ambient: 95));
-      final second = filter.accept(reading(bpm: 86, ambient: 96));
-      final third = filter.accept(reading(bpm: 86, ambient: 95));
-
-      expect(first.ambient, 55);
-      expect(second.ambient, 55);
-      expect(third.ambient, inInclusiveRange(55.1, 58));
-    });
-
-    test('ignores invalid ambient values', () {
-      final filter = SensorInputFilter(initialBpm: 86, initialAmbient: 55);
-
-      final result = filter.accept(reading(bpm: 86, ambient: 140));
-
-      expect(result.ambient, 55);
-      expect(result.ambientChanged, isFalse);
-      expect(result.rejectedInput, isTrue);
-    });
-
-    test('keeps output volume in a conservative range', () {
-      expect(VolumeMapper.fromAmbient(-50), 0.10);
-      expect(VolumeMapper.fromAmbient(1000), closeTo(0.80, 0.000001));
-      expect(
-        VolumeMapper.fromAmbient(double.nan),
-        inInclusiveRange(0.10, 0.80),
-      );
-    });
+  test('keeps output volume safe for raw BLE ambient values', () {
+    expect(VolumeMapper.fromAmbient(-50), 0.10);
+    expect(VolumeMapper.fromAmbient(1000), closeTo(0.80, 0.000001));
+    expect(VolumeMapper.fromAmbient(double.nan), inInclusiveRange(0.10, 0.80));
   });
 
   testWidgets('inactivity guard resets and fires after one minute', (
